@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" currentState="ready" xmlns:components="it.youearned.components.*" width="{model.width}" height="{model.height}" filters="{f}">
+	<fx:Script>
+		<![CDATA[
+			import com.greensock.TweenLite;
+			
+			import it.youearned.events.ToggleMenuEvent;
+			import it.youearned.events.ToggleSendPointsEvent;
+			import it.youearned.events.UpdateViewEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.presenters.ActivityPresenter;
+			import it.youearned.utils.AssetUtil;
+						
+			[Bindable]
+			private var model:AppModel = AppModel.getInstance();
+			
+			[Bindable]
+			private var presenter:ActivityPresenter = model.getPresenter(ActivityPresenter) as ActivityPresenter;
+			
+			public var data:Object;
+			
+			
+			private function updateState(state:String):void
+			{
+				this.currentState = state;
+			}
+			
+			
+			private const f:Array = [AssetUtil.getDropshadow({angle:135,alpha:.25})]
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="loading" />
+		<s:State name="ready" />
+		<s:State name="empty" />
+	</s:states>
+	
+	<s:Image source="{LayoutImages.PatternBackground}" fillMode="clip" width="{model.width}" top="-20" bottom="0"/>
+	
+	<s:Scroller left="4" right="4" top="{menu.height+1}" bottom="0" horizontalScrollPolicy="off">
+		<s:VGroup id="feedList" width="100%">
+			
+		</s:VGroup>
+	</s:Scroller>
+	
+	<s:BusyIndicator verticalCenter="0" horizontalCenter="0" includeIn="loading" />
+	
+	<components:MenuActionBar id="menu" width="100%" toggleMenu="presenter.toggleMenu(event, this)" toggleSendPoints="presenter.toggleSendPoints(event)" title="Activity Feed"  />
+	
+</s:Group>

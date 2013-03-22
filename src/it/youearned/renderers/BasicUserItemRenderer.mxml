@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" opaqueBackground="0xf1f1f1" >
+	<fx:Script>
+		<![CDATA[
+			import it.youearned.model.AppModel;
+			
+			private var model:AppModel = AppModel.getInstance() as AppModel;
+			
+			override public function set data(value:Object):void
+			{
+				super.data = value;
+				userPic.contentLoader = model.imageCache.Cache;
+				if(model.deviceType == "tablet" || Capabilities.screenDPI > 236) {
+					userPic.source = data.user.picture + "medium";
+				}
+				else {
+					userPic.source = data.user.picture + "small";
+				}
+				userName.text = data.user.first_name + " " + data.user.last_name;
+			}
+			/*private function getIconPath(item:Object):String
+			{
+				var str:String = item.user.picture;
+				if (str == null) {
+					str = "assets/images/default.png";
+				}
+				else {
+					str += "small";
+				}
+				return str;
+			}*/
+		]]>
+	</fx:Script>
+	
+	<s:Image width="31" height="31" left="4" top="4" bottom="4" source="{LayoutImages.DefaultProfileIcon}" />
+	<s:Image id="userPic" width="31" height="31" left="4" top="4" bottom="4" />
+	<s:Label id="userName" left="40" right="4" verticalCenter="0" />
+	
+</s:ItemRenderer>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Skin xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark">
+	<!-- host component -->
+	<fx:Metadata>
+		[HostComponent("spark.components.View")]
+	</fx:Metadata>
+	
+	<!-- states -->
+	<s:states>
+		<s:State name="disabled" />
+		<s:State name="normal" />
+	</s:states>
+	
+	<s:Rect width="100%" height="100%">
+		<s:fill>
+			<s:SolidColor color="0x292929" />
+		</s:fill>
+	</s:Rect>
+	<s:BitmapImage source="@Embed('assets/images/DarkBackground.png')" height="100%" width="260" scaleMode="letterbox" smooth="true" />
+	<s:Group id="contentGroup" name="contentGroup" width="100%" height="100%">
+		
+	</s:Group>
+	
+</s:Skin>

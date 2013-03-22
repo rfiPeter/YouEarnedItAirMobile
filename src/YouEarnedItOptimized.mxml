@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:controller="it.youearned.controller.*" applicationDPI="160" backgroundColor="0x000000"
+			   xmlns:s="library://ns.adobe.com/flex/spark" splashScreenMinimumDisplayTime="1000" splashScreenScaleMode="letterbox" preinitialize="preInit(event)" initialize="initializeHandler(event)" applicationComplete="init(event)" splashScreenImage="SplashScreens">
+	<fx:Style source="assets/styles/CSSNew.css"></fx:Style>
+	<fx:Script>
+		<![CDATA[
+			import com.greensock.TweenLite;
+			
+			import mx.events.FlexEvent;
+			
+			import spark.components.View;
+			import spark.managers.PersistenceManager;
+			
+			import it.youearned.events.LoadActivityEvent;
+			import it.youearned.events.LoginEvent;
+			import it.youearned.events.LogoutEvent;
+			import it.youearned.events.ToggleMenuEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.presenters.ActivityPresenter;
+			import it.youearned.presenters.BasePresenter;
+			import it.youearned.presenters.LoginPresenter;
+			import it.youearned.presenters.SendPointsPresenter;
+			import it.youearned.presenters.UserProfilePresenter;
+			import it.youearned.utils.IPhoneVersionUtil;
+			import it.youearned.utils.Log;
+			import it.youearned.views.LoginView;
+			
+			import views.ActivityMain;
+			import views.Login;
+			import views.MainMenu;
+			
+			public var persistenceManager:PersistenceManager;
+			
+			private var model:AppModel = AppModel.getInstance();
+			
+			private var presenter:BasePresenter;
+			
+			
+			protected function preInit(event:FlexEvent):void
+			{
+				model.setPresenter(BasePresenter, new BasePresenter);
+				model.setPresenter(LoginPresenter, new LoginPresenter);
+				model.setPresenter(ActivityPresenter, new ActivityPresenter);
+				model.setPresenter(SendPointsPresenter, new SendPointsPresenter);
+				model.setPresenter(UserProfilePresenter, new UserProfilePresenter);
+				
+				
+				if(Capabilities.os.toLowerCase().indexOf("iphone") > -1)
+					model.deviceOS = "iOS";
+				else
+					model.deviceOS = "Android";
+				
+				// get iPhone specific device info
+				
+				if(model.deviceOS == "iOS") {
+					trace(IPhoneVersionUtil.getDevice());
+					model.deviceOsDetails = IPhoneVersionUtil.getDevice();
+				}
+				
+			}
+			protected function init(event:FlexEvent):void
+			{
+				presenter = model.getPresenter(BasePresenter) as BasePresenter;
+				presenter.parseRead();
+				
+				this.mainNavigator.actionBar.visible = false;
+				this.mainNavigator.defaultPushTransition = null;
+				model.mainNavigator = this.mainNavigator;
+				model.menu = this.mainMenu;
+				this.stage.autoOrients = false;
+				
+				trace("capabilities");
+				trace("resolutionX", Capabilities.screenResolutionX);
+				trace("resolutionY", Capabilities.screenResolutionY);
+				trace("stageWidth", stage.stageWidth);
+				trace("stageHeight", stage.stageHeight);
+				trace("dpi", Capabilities.screenDPI);
+				//Is the device a tablet or a phone?
+				var _width : Number = Math.max( stage.stageWidth, stage.stageHeight );
+				var _height : Number = Math.min( stage.stageWidth, stage.stageHeight );
+				
+				_width = _width / Capabilities.screenDPI;
+				_height = _height / Capabilities.screenDPI;
+				trace(Capabilities.screenDPI);
+				trace(_width);
+				trace(Capabilities.os);
+				
+				
+				
+				if ( _width >= 5.3 ) {
+					this.stage.autoOrients = true;
+					model.deviceType = "tablet";
+					
+					//what is the tablets default orientation?
+					if (Capabilities.screenResolutionX > Capabilities.screenResolutionY) {
+						model.deviceOrientation = "landscape";
+					}
+					else {
+						model.deviceOrientation = "portrait";
+					}
+					
+					if(stage.stageWidth > stage.stageHeight) {
+						model.currentOrientation = "landscape";
+						
+						model.landscapeWidth = model.width = stage.fullScreenWidth;
+						model.portraitWidth = model.height = stage.fullScreenHeight;
+						//model.width = this.width;
+						//model.height = this.height;
+					}
+					else {
+						model.currentOrientation = "portrait";
+						
+						model.portraitWidth = this.width;
+						model.landscapeWidth = this.height;
+						model.width = this.width;
+						model.height = this.height;
+					}
+					setStageOrientation()
+					this.stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGE, orient);
+					this.stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGING, orienting);
+					stage.quality = StageQuality.MEDIUM;
+				}
+				else {
+					this.stage.autoOrients = false;
+					model.portraitWidth = 320;
+					model.landscapeWidth = this.height;
+					if(model.deviceOS == "iOS") {
+						model.width = 320;
+						model.height = 620;
+						model.mainNavigator.width = 320;
+					}
+					else {
+						model.mainNavigator.width = this.width;
+						model.width = stage.fullScreenWidth;
+						model.height = stage.fullScreenHeight;
+					}
+					model.deviceType = "phone";
+					stage.quality = StageQuality.LOW;
+				}
+				trace(model.deviceType);
+				
+				if(model.deviceType == "tablet")
+					this.mainMenu.width = 262;
+				
+				//model.navigator = navi;
+				//model.menu = this.mainMenu;
+				
+				
+				// at this stage, determine if the user is authenticated...
+				if (model.authToken) {
+					Log.info("Auth token: "+ model.authToken);
+					mainNavigator.popAll();
+					if(model.deviceType == "tablet") {
+						presenter.toggleMenu(new ToggleMenuEvent(false), true);
+						new LoginEvent().dispatch();
+						return;
+					}
+					else {
+						mainNavigator.pushView(views.ActivityMain);
+						new LoginEvent().dispatch();
+						return;
+					}
+				}
+				else {
+					Log.info("Force login");
+					if(model.deviceType == "phone") {
+						this.mainNavigator.firstView = views.Login;
+						new LogoutEvent().dispatch();
+						return;
+					}
+					presenter.toggleMenu(new ToggleMenuEvent(false), true);
+					return;
+				}
+				return;
+			}
+			
+			protected function initializeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				//NativeApplication.nativeApplication.addEventListener(Event.DEACTIVATE, onDeactivate);
+				
+				
+				persistenceManager = new PersistenceManager();
+				persistenceManager.load();
+				
+				var data:Object = persistenceManager.getProperty("navigatorState");
+				if (data)
+					splitView.loadViewData(data);
+			}
+			protected function onDeactivate(event:Event):void
+			{
+				persistenceManager.setProperty("navigatorState", splitView.saveViewData());
+				persistenceManager.save();
+			}
+			
+			protected function setStageOrientation():void
+			{
+				if(stage.stageWidth > stage.stageHeight) {
+					model.currentOrientation = "landscape";
+					return;
+				}
+				else {
+					model.currentOrientation = "portrait";
+					return;
+				}
+			}
+			
+			protected function orient(event:StageOrientationEvent):void
+			{
+				setStageOrientation();
+			}
+			
+			protected function orienting(event:StageOrientationEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<controller:AppController id="controller" />
+	</fx:Declarations>
+	<s:SplitViewNavigator id="splitView" width="100%" height="100%" contentBackgroundColor="0xdedede">
+		<s:ViewNavigator id="mainMenu" width="0" height="100%"
+						 firstView="views.MainMenu" includeInLayout="false"/>
+		<s:ViewNavigator id="mainNavigator" width="100%" height="100%" firstView="views.Start" skinClass="it.youearned.skins.NavigatorSkin"/>
+	</s:SplitViewNavigator>
+</s:Application>

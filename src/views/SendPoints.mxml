@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:components="it.youearned.components.*"
+		xmlns:s="library://ns.adobe.com/flex/spark" title="Send Points" actionBarVisible="false" viewActivate="activateView(event)" opaqueBackground="0x000000">
+	<fx:Script>
+		<![CDATA[
+			import spark.transitions.SlideViewTransition;
+			import spark.transitions.ViewTransitionDirection;
+			import spark.transitions.ZoomViewTransition;
+			import spark.transitions.ZoomViewTransitionMode;
+			
+			import it.youearned.api.services.valueObjects.Activity;
+			//import it.youearned.api.services.valueObjects.SimpleActivity;
+			import it.youearned.api.services.valueObjects.User;
+			import it.youearned.events.SendPointsEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.presenters.SendPointsPresenter;
+			
+			[Bindable]private var model:AppModel = AppModel.getInstance();
+			[Bindable]private var presenter:SendPointsPresenter = model.getPresenter(SendPointsPresenter) as SendPointsPresenter;
+			
+			
+			//[Bindable]
+			//public var title:String = "Send Points";
+			
+			
+			protected function activateView(event:Event):void
+			{
+				menuBar.nextButtonLabel = "Next";
+				presenter.updateStateFunction = updateState;
+				if (model.deviceType == "tablet") {
+					menuBar.width = stage.stageWidth - 262;
+				}
+				else {
+					menuBar.percentWidth = 100;
+				}
+				
+				this.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKey);
+			}
+			
+			protected function deactivateView(event:Event):void
+			{
+				
+				this.stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKey);
+				
+			}
+			protected function onKey(e:KeyboardEvent):void
+			{
+				if(e.keyCode == Keyboard.BACK)
+				{
+					e.preventDefault();
+					onCancel(null);
+					
+				}
+			}
+			protected function onSelectUser(event:Event):void
+			{
+				points.visible = true;
+			}
+			
+			protected function onSelectPoints(event:Event):void
+			{
+				message.visible = true;
+				category.visible = true;
+				menuBar.nextButtonLabel = "Send";
+			}
+			
+			protected function onMessage(event:Event):void
+			{
+				category.visible = true;
+			}
+			
+			protected function onCancel(event:Event):void
+			{
+				
+				var slideUp:SlideViewTransition = new SlideViewTransition();
+				slideUp.direction = ViewTransitionDirection.DOWN;
+				model.mainNavigator.popView(slideUp);
+				//new UpdateViewEvent(UpdateViewEvent.POP_VIEW).dispatch();
+			}
+			
+			
+			
+			protected function onNext(event:Event):void
+			{
+				userValue = recipient.selectedUser;
+				if (points.currentState == "selecting")
+					points.currentState = "selected";
+				pointsValue = points.points;
+				messageValue = message.message;
+				categoryValue = category.category;
+				privacyValue = category.privacy;
+				
+				/*var a:SimpleActivity = new SimpleActivity();
+				a.sender_id = model.me.id;
+				a.recipient_id = userValue.id;
+				a.description = messageValue;
+				a.points = pointsValue;
+				a.category_id = categoryValue;
+				a.is_private = privacyValue;*/
+				
+				var a:Activity = new Activity();
+				a.sender_id = model.me.id
+				a.recipient_id = userValue.id;
+				a.description = messageValue;
+				a.points = pointsValue;
+				a.category = categoryValue.toString();
+				a.is_private = privacyValue;
+				
+				obj = new Object;
+				obj.username = userValue.first_name +" "+userValue.last_name;
+				obj.points = a.points;
+				
+				if (recipient.ready && pointsValue > 0) {
+					trace("authtoken: ", model.authToken);
+					new SendPointsEvent(SendPointsEvent.SEND_POINTS, a).dispatch();
+				}
+				
+			}
+			
+			private function updateState(newState:String, data:Object = null):void
+			{
+				message.clear();
+				
+				currentState = newState;
+				
+				if (newState == "sent") {
+					trace(JSON.stringify(obj));
+					var zoomTrans:ZoomViewTransition = new ZoomViewTransition();
+					zoomTrans.mode = ZoomViewTransitionMode.IN;
+					navigator.popToFirstView(zoomTrans);
+					model.mainNavigator.replaceView(views.PointsSent, obj, null, zoomTrans);
+					//sentPoints.data = (data) ? data : obj;
+				}
+			}
+			
+			private var obj:Object;
+			
+			private var userValue:User;
+			private var pointsValue:Number;
+			private var messageValue:String;
+			private var categoryValue:int;
+			private var privacyValue:Boolean;
+			
+			protected function onReset(event:Event):void
+			{
+				currentState = "ready";
+				
+				category.clear();
+				category.visible = false;
+				message.clear();
+				message.visible = false;
+				points.clear();
+				points.visible = false;
+				recipient.clear();
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="ready" />
+		<s:State name="sent" />
+	</s:states>
+	<s:Rect width="100%" top="49" bottom="0">
+		<s:fill>
+			<s:SolidColor color="0x292929"/>
+		</s:fill>
+	</s:Rect>
+	<s:BitmapImage id="backgroundImg" source="{LayoutImages.DarkBackground}" smooth="true" scaleMode="letterbox" width="100%" />
+	
+	<components:SendCancelActionBar id="menuBar" height="50" cancel="onCancel(event)" complete="onNext(event)" title="{title}" />
+	
+	<components:PointSelector id="points" top="101" complete="onSelectPoints(event)" error="trace('too many points')" visible="false" />
+	<components:MessageInput id="message" top="152" complete="onMessage(event)" visible="false" />
+	<components:CategoryPicker id="category" top="253" visible="false" dataProvider="{model.categories}" />
+	
+	
+	
+	<!-- needs to be at the bottom because if they go back and change the user, if it's at the top, the display will be under everything -->
+	<components:UserPicker top="50" id="recipient" dataProvider="{model.users}" complete="onSelectUser(event)" />
+	
+	<!--<views:PointsSentView width="100%" height="100%" x="0" y="0" includeIn="sent" id="sentPoints" reset="onReset(event)" />-->
+</s:View>

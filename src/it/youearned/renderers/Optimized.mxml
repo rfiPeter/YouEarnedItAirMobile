@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" width="292" minHeight="150" maxHeight="250" contentBackgroundAlpha="1" opaqueBackground="0xffffff" autoDrawBackground="true" cacheAsBitmap="true">
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import spark.core.ContentCache;
+			import spark.core.MaskType;
+			import spark.skins.mobile.supportClasses.MobileSkin;
+			
+			import it.youearned.api.services.valueObjects.Activity;
+			import it.youearned.api.services.valueObjects.ActivitySet;
+			import it.youearned.events.DisplayActivityItemEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.model.ImageCache;
+			import it.youearned.utils.AssetUtil;
+			import it.youearned.utils.DateDifferenceUtil;
+			
+			private var model:AppModel = AppModel.getInstance();
+			
+			private var circle1:Sprite = it.youearned.utils.AssetUtil.getCircle(25,25,25);
+			private var circle2:Sprite = it.youearned.utils.AssetUtil.getCircle(25,25,25);
+			private var circle3:Sprite = it.youearned.utils.AssetUtil.getCircle(21,21,21);
+			private var circle4:Sprite = it.youearned.utils.AssetUtil.getCircle(21,21,21);
+			
+			override public function set data(value:Object):void
+			{
+				super.data = value;
+				/*if (!loaded)
+					return;*/
+				draw();
+			}
+			
+			private function draw():void
+			{
+				// I'm just building this with the expectation the object passed in IS an ActivitySet object which I am pulling the Activity object from.
+				
+				if (data is ActivitySet) {
+					activity = (data as ActivitySet).activity;
+					
+					privacyColor = (activity.is_private) ? PRIVATE : PUBLIC;
+					
+//					publicPrivacyIcon.visible = publicPrivacyIcon.includeInLayout = ((activity.is_private) ? false : true);
+					cornerBg.visible = cornerBg.includeInLayout = ((activity.is_private) ? true : false);
+					privatePrivacyIcon.visible = privatePrivacyIcon.includeInLayout = ((activity.is_private) ? true : false);
+					
+					// for the timestamp
+					//trace("settingDate1: ", activity.date)
+					var d:Date = new Date(activity.date);
+					//trace("settingDate:2 ", d.toString())
+					timestamp = DateDifferenceUtil.difference(new Date, d);
+					
+					if ( !recipientImage.contentLoader ) {
+						recipientImage.contentLoader = model.imageCache.Cache;
+					}
+					//set the image source
+					
+					if ( !senderImage.contentLoader ) {
+						senderImage.contentLoader = model.imageCache.Cache;
+					}
+					//set the image source
+					if(model.deviceType == "tablet" || Capabilities.screenDPI > 236) {
+						senderImage.source = activity.sender.picture + "medium";
+						recipientImage.source = activity.recipient.picture + "medium";
+					}
+					else {
+						senderImage.source = activity.sender.picture + "small";
+						recipientImage.source = activity.recipient.picture + "small";
+					}
+					
+				
+					trace("URL: ", activity.sender.picture + "small");
+					
+					senderName.text = activity.sender.first_name + " " + activity.sender.last_name;
+					recipientName.text = activity.recipient.first_name + " " + activity.recipient.last_name;
+					
+					desc.text = activity.description;
+					
+					// for comments
+					if (activity.comments.length == 0) {
+						commentsLength = "Comment";
+						commentIcon.visible = false;
+					}
+					else {
+						commentsLength = activity.comments.length.toString();
+						commentIcon.visible = true;
+					}
+					
+					// for "tags"
+					if (activity.category == null) {
+						// hide category tag...
+						categoryIcon.visible = categoryText.visible = false;
+					}
+					else {
+						categoryIcon.visible = categoryText.visible = true;
+						category = activity.category;
+					}
+					
+					if (model.me != null) {
+						if (activity.sender.id == model.me.id || activity.recipient.id == model.me.id) {
+							greenStarImg.visible = greenStarImg.includeInLayout = true;
+							pointsGivenLbl.visible = pointsGivenLbl.includeInLayout = true;
+							pointsGivenLbl.text = activity.points.toString();
+						}
+						else {
+							greenStarImg.visible = greenStarImg.includeInLayout = false;
+							pointsGivenLbl.visible = pointsGivenLbl.includeInLayout = false;
+						}
+					}
+					else {
+						greenStarImg.visible = greenStarImg.includeInLayout = false;
+						pointsGivenLbl.visible = pointsGivenLbl.includeInLayout = false;
+					}
+					
+				}
+				else {
+					// do something to hide the view...
+					trace('! an activity object');
+					
+					//this.filters = [AssetUtil.getDropshadow({distance:4,angle:45,color:0x666666,alpha:.25})];
+				}
+			}
+			
+			private var loaded:Boolean = false;
+			
+			private const PRIVATE:uint = 0x919597;
+			private const PUBLIC:uint = 0xf1f1f1;
+			
+			[Bindable]private var commentsLength:String = "";
+			
+			[Bindable]private var category:String = "";
+			
+			[Bindable]private var timestamp:String = "";
+			
+			[Bindable]private var privacyColor:uint = PUBLIC;
+			
+			[Bindable]private var activity:Activity;
+			
+			protected function viewComments(event:MouseEvent):void
+			{
+			}
+			
+			protected function senderImage_completeHandler(event:Event):void
+			{
+				var img:Image = event.target as Image;
+				senderImage.imageDisplay.mask = circle2;
+			}
+			
+			protected function recipientImage_completeHandler(event:Event):void
+			{
+				var img:Image = event.target as Image;
+				recipientImage.imageDisplay.mask = circle4;
+			}
+			protected function senderImage_ioErrorHandler(event:IOErrorEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("image error");
+			}
+			
+		]]>
+	</fx:Script>
+	<s:states>
+		<s:State name="normal" />
+		<s:State name="hovered" />
+		<s:State name="selected" />
+	</s:states>
+	<!-- filters="{[AssetUtil.getDropshadow({distance:4,angle:45,color:0x666666,alpha:.25})]}"-->
+	<!--<s:Group>-->
+		<!--<s:Rect width="292" height="100%">
+			<s:fill>
+				<s:SolidColor color="0xffffff" color.selected="0xdedede"/>
+			</s:fill>
+		</s:Rect>-->
+		
+		<!-- header -->
+		
+		
+		<!-- name piece -->
+		<!--<s:HGroup left="65" top="10" verticalAlign="middle">-->
+			<s:Label id="senderName" fontSize="11" x="65" y="10" text="{activity.sender.first_name} {activity.sender.last_name}" styleName="RedTextStyle"/>
+			<s:BitmapImage id="smallArrowPath" source="{LayoutImages.SmallGrayArrow}" y="11" x="{senderName.width + senderName.x + 3}" width="4" height="8"/>
+			<s:Label id="recipientName" fontSize="11" x="{smallArrowPath.width + smallArrowPath.x + 3}" y="10" text="{activity.recipient.first_name} {activity.recipient.last_name}" styleName="RedTextStyle"/>
+		<!--</s:HGroup>-->
+		
+		<!-- time piece -->
+		<!--<s:HGroup left="65" top="30">-->
+			<s:BitmapImage x="65" top="30" width="11" height="12" source="{LayoutImages.GreenStar}" id="greenStarImg"/>
+			<s:Label x="{greenStarImg.width + greenStarImg.x}" y="30" text="{activity.points}" styleName="GreenTextStyle" fontSize="12" fontWeight="bold" id="pointsGivenLbl" />
+			<s:BitmapImage x="{pointsGivenLbl.width + pointsGivenLbl.x}" y="30" width="11" height="10" smooth="true"
+					 source="{LayoutImages.TimeIcon}" id="timeIcon"/>
+			<s:Label x="{timeIcon.width + timeIcon.x}" y="30" color="#919597" fontSize="10" text="{timestamp}"/><!-- left:77 top:30 -->
+		<!--</s:HGroup>-->
+		
+		
+		<!-- privacy piece -->
+		<s:Path data="L 37 0 L 37 32 L 0 0 z" right="0" top="0" id="cornerBg" >
+			<s:fill>
+				<s:SolidColor color="{privacyColor}" />
+			</s:fill>
+		</s:Path>
+		<s:BitmapImage id="publicPrivacyIcon" right="4" top="4" width="15" height="12"
+					   source="{LayoutImages.PublicPrivacyIcon}" visible="false" includeInLayout="false"/>
+		<s:BitmapImage id="privatePrivacyIcon" right="4" top="4" width="9" height="11" smooth="true"
+					   source="{LayoutImages.PrivatePrivacyIcon}"/>
+		
+		<!-- line -->		
+		<s:Rect y="55" left="70" right="25" height="3">
+			<s:fill>
+				<s:SolidColor color="0xdddddd" />
+			</s:fill>
+		</s:Rect>
+		
+		
+		<!-- content -->
+		<s:Label id="desc" minHeight="110" maxDisplayedLines="6" y="78" left="10" right="20" styleName="BrownTextStyle" cacheAsBitmap="true"/>
+		
+		
+		<!-- footer -->
+		<!--<s:Group x="0" bottom="0" width="292" height="30" cacheAsBitmap="true">-->
+			<s:Rect width="292" height="30" y="{desc.height+desc.y}">
+				<s:fill>
+					<s:SolidColor color="0xf1f1f1" />
+				</s:fill>
+			</s:Rect>
+			
+			<s:Image id="commentIcon" x="24" y="{desc.height+desc.y+10}" width="14" height="13" smooth="true" click="viewComments(event)"
+						   source="{LayoutImages.CommentIcon}"/>
+			<s:Label left="4" y="{desc.height+desc.y+11}" fontSize="11" styleName="RedTextStyle" text="{commentsLength}" textAlign="left" click="viewComments(event)"/>
+			
+			
+			<s:BitmapImage id="categoryIcon" y="{desc.height+desc.y+10}" x="{this.width - categoryIcon.width - 4}" width="13" height="9" smooth="true"
+						   source="{LayoutImages.TagsIcon}"/>
+			<s:Label id="categoryText" y="{desc.height+desc.y+10}" x="{this.width - categoryText.width - 22}" fontSize="11" text="{category}" textAlign="right" fontWeight="bold" styleName="DarkGrayTextStyle"/>
+			
+		<!--</s:Group>-->
+		
+	
+	<!-- image piece -->
+	<s:BitmapImage left="4" top="4" width="50" height="50" smooth="true"
+				   source="{LayoutImages.DefaultProfileIcon}" mask="{this.circle1}" filters="{[AssetUtil.getGlowFilter()]}" />
+	<s:Image id="senderImage" left="4" top="4" width="50" height="50" smooth="true" updateComplete="senderImage_completeHandler(event)"/>
+	<s:BitmapImage y="33" left="27" width="42" height="42" smooth="true"
+				   source="{LayoutImages.DefaultProfileIcon}" mask="{this.circle3}" filters="{[AssetUtil.getGlowFilter()]}" />
+	<s:Image y="33" left="27" width="42" height="42" id="recipientImage" smooth="true" updateComplete="recipientImage_completeHandler(event)"/>
+	<s:BitmapImage y="52" left="17" width="12" height="10" smooth="true"
+				   source="{LayoutImages.FromToArrow}" filters="{[AssetUtil.getDropshadow({distance:4,angle:45,color:0x666666,alpha:.25})]}"/>
+	<!--</s:Group>-->
+
+		
+	
+	
+
+</s:ItemRenderer>

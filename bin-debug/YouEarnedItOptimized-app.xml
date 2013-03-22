@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<application xmlns="http://ns.adobe.com/air/application/3.6">
+
+	<id>YouEarnedIMobile.debug</id>
+	<filename>YouEarnedItOptimized</filename>
+	<name>
+		<text xml:lang="en">You Earned It-debug</text>
+	</name>
+	<versionNumber>1.0.1</versionNumber>
+		         
+	<versionLabel>v1</versionLabel>
+
+	<initialWindow>
+		<content>YouEarnedItOptimized.swf</content>
+        <renderMode>auto</renderMode>	
+		<autoOrients>false</autoOrients>
+        <fullScreen>false</fullScreen>
+        <visible>true</visible>
+        <softKeyboardBehavior>none</softKeyboardBehavior>
+    </initialWindow>
+
+	<supportedLanguages>en</supportedLanguages>
+
+<icon>
+	<image16x16>assets/icons/16.png</image16x16>
+	<image29x29>assets/icons/29.png</image29x29>
+	<image36x36>assets/icons/36.png</image36x36>
+	<image48x48>assets/icons/48.png</image48x48>
+	<image50x50>assets/icons/50.png</image50x50>
+	<image57x57>assets/icons/57.png</image57x57>
+	<image58x58>assets/icons/58.png</image58x58>
+	<image72x72>assets/icons/72.png</image72x72>
+	<image100x100>assets/icons/100.png</image100x100>
+	<image114x114>assets/icons/114.png</image114x114>
+	<image144x144>assets/icons/144.png</image144x144>
+	<image512x512>assets/icons/512.png</image512x512>
+	<image1024x1024>assets/icons/1024.png</image1024x1024>
+</icon>
+<android>
+        <colorDepth>16bit</colorDepth>
+        <manifestAdditions><![CDATA[
+			<manifest android:installLocation="auto">
+			    <uses-permission android:name="android.permission.INTERNET"/>
+			</manifest>
+			
+		]]></manifestAdditions>
+    </android>
+    <iPhone>
+        <InfoAdditions><![CDATA[
+			<key>UIDeviceFamily</key>
+			<array>
+				<string>1</string>
+				<string>2</string>
+			</array>
+			<key>UIPrerenderedIcon</key>
+        	<true/>
+			<key>UIStatusBarStyle</key> 
+        	<string>UIStatusBarStyleBlackOpaque</string> 
+		]]></InfoAdditions>
+        <requestedDisplayResolution excludeDevices="iPad3">high</requestedDisplayResolution>
+    </iPhone>
+<extensions>
+        <extensionID>pl.mateuszmackowiak.nativeANE.NativeAlert</extensionID>
+    </extensions>
+</application>

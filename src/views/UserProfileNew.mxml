@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:components="it.youearned.components.*" 
+		render="view1_renderHandler(event)"
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		actionBarVisible="false" contentBackgroundAlpha="0" backgroundAlpha="0"
+		viewActivate="activateView(event)"
+		viewDeactivate="deactivateView(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.greensock.TweenLite;
+			import com.greensock.easing.Back;
+			
+			import mx.core.FlexGlobals;
+			import mx.events.CollectionEvent;
+			import mx.events.FlexEvent;
+			import mx.events.TouchInteractionEvent;
+			
+			import spark.events.IndexChangeEvent;
+			import spark.events.ViewNavigatorEvent;
+			import spark.layouts.TileLayout;
+			import spark.layouts.VerticalLayout;
+			import spark.transitions.SlideViewTransition;
+			import spark.transitions.ViewTransitionDirection;
+			
+			import flashx.textLayout.container.ScrollPolicy;
+			
+			import it.youearned.events.ToggleMenuEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.presenters.UserProfilePresenter;
+			import it.youearned.skins.YEIButtonBarSkin;
+			
+			[Bindable]
+			private var model:AppModel = AppModel.getInstance();
+			
+			[Bindable]private var presenter:UserProfilePresenter = model.getPresenter(UserProfilePresenter) as UserProfilePresenter;
+			private var deviceType:String;
+			
+			private var stateOfBeing:String;
+			
+			private var _scrollPosition:Object;
+
+			public function get scrollPosition():Object
+			{
+				if(_scrollPosition) {
+					return _scrollPosition;
+				}
+				_scrollPosition = new Object();
+				_scrollPosition.hsp = "0";
+				_scrollPosition.vsp = "0";
+				return _scrollPosition;
+			}
+
+			public function setScrollPosition(x:String,y:String):void
+			{
+				_scrollPosition.hsp = x.toString();
+				_scrollPosition.vsp = y.toString();
+			}
+
+			
+			override public function set data(value:Object):void
+			{
+				trace("activityViewData: ", JSON.stringify(super.data));
+				if(value == null) {
+					value = new Object();
+					value.scrollPosition = 0;
+				}
+					
+				
+				super.data = value;
+				
+				
+				trace("activity view data set");
+				//trace("activityViewData: ", JSON.stringify(value));
+			}
+			
+			protected function activateView(event:ViewNavigatorEvent):void
+			{
+				//TweenLite.delayedCall(.6, buttonBarReady);
+				presenter.init(feedList);
+				
+				if(data) {
+					if(data.scrollPosition) {
+						setScrollPosition(data.scrollPosition.hsp, data.scrollPosition.vsp)
+						//this.scrollPosition = data.scrollPosition;
+					}
+				}
+				
+				if (model.deviceType == "tablet") {
+					presenter.toggleMenu(new ToggleMenuEvent(true));
+					this.stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGE, orient);
+					this.stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGING, orienting);
+				}
+				else {
+					presenter.toggleMenu(new ToggleMenuEvent(false));
+				}
+				
+				this.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKey);
+				menu.actionLabel.addEventListener(MouseEvent.CLICK, resetList);
+				
+				
+			}
+			protected function deactivateView(event:ViewNavigatorEvent):void
+			{
+				// TODO Auto-generated method stub
+				if (data == null)
+					data = new Object();
+				this.stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKey);
+				this.stage.removeEventListener(StageOrientationEvent.ORIENTATION_CHANGE, orient);
+				this.stage.removeEventListener(StageOrientationEvent.ORIENTATION_CHANGING, orienting);
+				
+				data.currentState = this.currentState;
+				data.scrollPosition = new Object;
+				data.scrollPosition.hsp = feedList.layout.horizontalScrollPosition.toString();
+				data.scrollPosition.vsp = feedList.layout.verticalScrollPosition.toString();
+				
+				if(feedList.dataProvider)
+					data.dataProvider = "true";
+				
+				//feedList.dataProvider = null;
+				
+				trace("activityViewDataSaved: ", JSON.stringify(data));
+			}
+			/*private function updateState(st:String):void
+			{
+				trace("deviceOrientation: ", model.deviceOrientation);
+				trace("currentOrientation: ", model.currentOrientation);
+				if(st == "ready") {
+					//busy.visible = false;
+					hideBusy();
+					if(model.deviceType == "tablet" && model.currentOrientation == "portrait") {
+						this.currentState = "readyTabletPortrait";
+						st = "readyTabletPortrait";
+					}
+					else if(model.deviceType == "tablet") {
+						this.currentState = "readyTablet";
+						st = "readyTablet";
+					}
+					else {
+						this.currentState = st;
+					}
+					presenter.setProvider();
+					
+					feedList.dataProvider.addEventListener(CollectionEvent.COLLECTION_CHANGE, scroll);
+				}
+				else {
+					this.currentState = st;
+				}
+				trace(this.currentState);
+			}*/
+			protected function filterActivity(event:IndexChangeEvent):void
+			{
+				trace("filterActivity: ", event.newIndex);
+				switch (event.newIndex)
+				{
+					case 0:
+						currentState = "showAll";
+						break;
+					case 1:
+						currentState = "showReceived";
+						break;
+					case 2:
+						currentState = "showSent";
+						break;
+				}
+				presenter.updateView(event.newIndex);
+			}
+			
+			protected function snap(event:TouchInteractionEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("snap");
+			}
+			private function swipeNavigate(swipe:TransformGestureEvent):void
+			{
+				// TODO Auto Generated method stub
+				if (swipe.offsetX == 1 ) {
+					presenter.toggleMenu(new ToggleMenuEvent(true));
+				}
+				else if (swipe.offsetX == -1 ) {
+					presenter.toggleMenu(new ToggleMenuEvent(false));
+				}
+			}
+			
+			protected function selectItem(event:IndexChangeEvent):void
+			{
+				// TODO Auto-generated method stub
+				var slideTrans:SlideViewTransition = new SlideViewTransition();
+				slideTrans.direction = ViewTransitionDirection.LEFT;
+				model.mainNavigator.pushView(views.SingleActivity, feedList.dataProvider.getItemAt(event.newIndex), null, slideTrans);
+				
+				this.setScrollPosition(feedList.layout.horizontalScrollPosition.toString(),feedList.layout.verticalScrollPosition.toString());
+			}
+			
+			protected function view1_renderHandler(event:Event):void
+			{
+				if (model.deviceType == "tablet") {
+					deviceType = "tablet";
+					menu.x = 0;
+					menu.width = stage.stageWidth - 262;
+					menu.menuButton.visible = false;
+				}
+				else {
+					deviceType = "phone";
+					menu.percentWidth = 100;
+					this.addEventListener(TransformGestureEvent.GESTURE_SWIPE, swipeNavigate);
+				}
+			}
+			
+			private function orienting(event:StageOrientationEvent):void
+			{
+
+				mainGroup.includeInLayout = false;
+				menu.includeInLayout = false;
+				bb.includeInLayout = false;
+			}
+			
+			private function orient(event:StageOrientationEvent):void
+			{
+				//menu.init();
+				//mainGroup.percentWidth = 100;
+				mainGroup.includeInLayout = true;
+				bb.includeInLayout = true;
+				if(event.target) {
+					if (this.stage.stageWidth < this.stage.stageHeight) {
+						layoutTabletPortrait();
+						menu.x = 0;
+						menu.includeInLayout = true;
+						menu.init();
+						return;
+					}
+					else {
+						layoutTabletLandscape();
+						menu.x = 0;
+						menu.includeInLayout = true;
+						menu.init();
+						return;
+					}
+				}
+			}
+			
+			
+			private function listActivate():void
+			{
+				
+				trace("list ready");
+				if(model.deviceType == "tablet" && stage.stageWidth >= stage.stageHeight) {
+					trace("tablet landsacpe");
+					layoutTabletLandscape();
+				}
+				else if (model.deviceType == "tablet" && stage.stageWidth < stage.stageHeight) {
+					trace("tablet portrait");
+					layoutTabletPortrait();
+				}
+				else {
+					layoutPhone();
+				}
+				
+				//feedList.top = menu.height + bb.height + 1;
+				feedList.visible = true;
+				busy.visible = false;
+				
+				if(data == null)
+					return;
+				
+				trace(data.scrollPosition);
+				/*if(model.deviceType == "tablet" && model.currentOrientation == "landscape") {
+					trace("restore horizontal scroll");
+					var restoredHSP:Number = data.scrollPosition as Number;
+					trace("restoredHSP: ", restoredHSP);
+					feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.ON);
+					feedList.layout.horizontalScrollPosition = restoredHSP;
+					data.restoredHSP = restoredHSP;
+					return;
+				}
+				else{*/
+					trace("restore vertical scroll");
+					var restoredVSP:Number = data.scrollPosition as Number;
+					trace("restoredVSP: ", restoredVSP);
+					feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.ON);
+					feedList.validateNow();
+					feedList.layout.verticalScrollPosition = restoredVSP;
+					data.retoredVSP = restoredVSP;
+					return;
+				//}
+			}
+			private function layoutTabletLandscape():void
+			{
+				mainGroup.width = model.landscapeWidth - 262;
+				mainGroup.x = 0;
+				
+				var reqColumns:int = 2;
+				if((model.landscapeWidth - model.menu.width) > (292 * 3))
+					reqColumns = 3;
+				tileLayout.requestedColumnCount = reqColumns;
+				tileLayout.columnWidth = ((model.landscapeWidth - model.menu.width) - tileLayout.horizontalGap) / reqColumns;
+				
+				tileLayout.verticalScrollPosition = this.scrollPosition.vsp;
+				
+				feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.OFF);
+				feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.ON);
+				feedList.percentWidth = 100;
+				feedList.height = feedList.y + (stage.stageHeight - feedList.y);
+				trace("listhheight: ", feedList.height);
+				feedList.layout = tileLayout;
+				feedList.x = 0;
+				
+				spacer.height = 0;
+				
+				this.baseLayout = new VerticalLayout;
+				baseLayout.gap = 0;
+				baseLayout.horizontalAlign = "left";
+				this.layout = baseLayout;
+				
+				
+				return;
+			}
+			private function layoutTabletPortrait():void
+			{
+				mainGroup.width = model.portraitWidth - 262;
+				mainGroup.x  = 0;
+				this.baseLayout = new VerticalLayout();
+				baseLayout.gap = 0;
+				baseLayout.horizontalAlign = "center";
+				this.layout = baseLayout;
+				spacer.height = 0;
+				
+				var v2:VerticalLayout = new VerticalLayout();
+				v2.gap = 12;
+				v2.useVirtualLayout = true;
+				v2.verticalScrollPosition = this.scrollPosition.vsp;
+				
+				feedList.layout = baseLayout;
+				feedList.dataGroup.layout = v2;
+				feedList.horizontalCenter = 0;
+				feedList.width = 312;
+				//feedList.top += 10;
+				feedList.useVirtualLayout = true;
+				feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.OFF);
+				feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.ON);
+				feedList.height = feedList.x + (stage.stageHeight - feedList.x);
+				
+				/*this.backgroundImg.source = LayoutImages.PatternBackgroundLg;
+				backgroundImg.scaleMode = "zoom";
+				backgroundImg.width = model.portraitWidth - 262;
+				backgroundImg.rotation = 0;
+				backgroundImg.x = 0;*/
+				
+				
+				return;
+			}
+			private function layoutPhone():void
+			{
+				this.layout = this.baseLayout;
+				
+				var vl:VerticalLayout = new VerticalLayout();
+				vl.verticalScrollPosition = this.scrollPosition.vsp;
+				vl.gap = 8;
+				spacer.height = 0;
+				feedList.layout = vl;
+				feedList.width = 292;
+				feedList.horizontalCenter = 0;
+				feedList.useVirtualLayout = true;
+				feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.OFF);
+				feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.ON);
+				var kbsz:Number = (stage.stageHeight / Capabilities.screenDPI) * FlexGlobals.topLevelApplication.applicationDPI;
+				feedList.height = feedList.x + (kbsz - feedList.x);
+				
+				trace("feedListHeight: ", feedList.height);
+				
+				/*spacer.height = 16;
+				this.backgroundImg.source = LayoutImages.PatternBackground;
+				
+				backgroundImg.scaleMode = "zoom";
+				backgroundImg.percentWidth = 100;
+				menu.init();*/
+				return;
+			}
+			
+			private function notBusy(e:FlexEvent):void
+			{
+				if(busy.visible)
+					hideBusy();
+				
+				feedList.removeEventListener(FlexEvent.UPDATE_COMPLETE, notBusy);
+				var maxVSP:Number = feedList.dataGroup.contentHeight - feedList.dataGroup.height;
+				var maxHSP:Number = feedList.dataGroup.contentWidth - feedList.dataGroup.width;
+				
+				if(model.deviceType == "tablet"){
+					feedList.layout.verticalScrollPosition = Math.min(maxVSP, this.scrollPosition.vsp);
+				}
+				else {
+					feedList.layout.verticalScrollPosition = Math.min(maxVSP, this.scrollPosition.vsp);
+				}
+				
+				trace("mainGroupWidth: ", mainGroup.width);		
+
+				
+					
+					
+			}
+			
+			private function scroll(event:CollectionEvent):void
+			{
+				// TODO Auto Generated method stub
+				if(data == null)
+					return
+				
+				if(data.scrollPostion) {
+					trace("ScrollPosition:", data.scrollPostion);
+				}
+			}
+			
+			private function hideBusy():void
+			{
+				TweenLite.to(busy, .36, {alpha: 0, onComplete: function(){
+					busy.visible = false;
+					includeInLayout = false;
+				}});
+			}
+			
+			private function showBusy():void
+			{
+				/*busy.x = (this.width / 2) - (this.);
+				busy.verticalCenter = 0;*/
+				includeInLayout = true;
+				busy.visible = true;
+				TweenLite.to(busy, .36, {alpha: 1});
+			}
+			
+			protected function resetList(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				TweenLite.to(feedList.layout, .5, {verticalScrollPosition: 0, horizontalScrollPosition: 0, ease:Back.easeOut});
+			}
+			
+			private var menuOpen:Boolean = false;
+			protected function onKey(e:KeyboardEvent):void
+			{
+				if(e.keyCode == Keyboard.BACK)
+				{
+					e.preventDefault();
+					presenter.toggleMenu(new ToggleMenuEvent(true));
+					
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:TileLayout id="tileLayout" clipAndEnableScrolling="true" orientation="rows" horizontalGap="0" verticalGap="10" horizontalAlign="center" useVirtualLayout="true"/>
+	</fx:Declarations>
+	<s:states>
+		<s:State name="showAll" />
+		<s:State name="showSent" />
+		<s:State name="showReceived" />
+	</s:states>
+	<s:layout>
+		<s:VerticalLayout id="baseLayout" horizontalAlign="center" gap="0"/>
+	</s:layout>
+	<components:MenuActionBar id="menu" height="55" toggleMenu="presenter.toggleMenu(event)" toggleSendPoints="presenter.toggleSendPoints(event)"  title="{model.me.first_name} {model.me.last_name}"/>
+	<s:ButtonBar top="{menu.height}" width="100%" change="filterActivity(event)" requireSelection="true" selectedIndex="0" id="bb" visible="true" cacheAsBitmap="false" skinClass="it.youearned.skins.YEIButtonBarSkin">
+		<s:dataProvider>
+			<s:ArrayList>
+				<fx:Object label="All" />
+				<fx:Object label="Received" />
+				<fx:Object label="Sent" />
+			</s:ArrayList>
+		</s:dataProvider>
+	</s:ButtonBar>
+	<s:Spacer id="spacer" height="1" width="320"/>
+	<s:Group id="mainGroup">
+		<!--<s:BitmapImage id="backgroundImg" source="{LayoutImages.PatternBackground}" scaleMode="stretch" rotation.readyTablet="90" rotation.readyTabletPortrait="0"/>-->
+		<s:List id="feedList" itemRenderer="it.youearned.renderers.ActivityItemRenderer" includeInLayout="true" skinClass="it.youearned.skins.ScrollerlessListSkin"
+				change="selectItem(event)" contentBackgroundAlpha="0" creationComplete="listActivate()" updateComplete="notBusy(event)" verticalScrollPolicy="on">
+		</s:List>
+		<s:BusyIndicator id="busy" verticalCenter="-55" horizontalCenter="0" symbolColor="0xd31c2c" width="64" height="64" includeInLayout="true" />
+	</s:Group>
+	<!--<s:BitmapImage id="busy" source="{LayoutImages.Loading}" width="320" height="36" includeInLayout="true"/>-->
+	
+	
+</s:View>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" width="100%">
+	<fx:Script>
+		<![CDATA[
+			import it.youearned.api.services.valueObjects.Comment;
+			import it.youearned.utils.DateDifferenceUtil;
+			[Bindable]private var _data:Comment;
+			public function get data():Comment
+			{
+				return _data;
+			}
+			public function set data(value:Comment):void
+			{
+				_data = value;
+				
+				dateDiff = DateDifferenceUtil.difference(new Date, new Date(_data.date));
+			}
+			
+			[Bindable]private var dateDiff:String = "";
+
+		]]>
+	</fx:Script>
+	<s:Rect width="100%" height="100%">
+		<s:fill>
+			<s:SolidColor color="0xf1f1f1"/>
+		</s:fill>
+	</s:Rect>
+	<s:Image width="31" height="31" left="4" top="4" source="@Embed('assets/images/default.png')" />
+	<s:Image width="31" height="31" left="4" top="4" source="{_data.user.picture}/small" />
+	<s:HGroup left="42" top="6" right="5">
+		<s:Label fontSize="11" text="{_data.user.first_name} {_data.user.last_name}" styleName="RedTextStyle"/>
+		<s:Spacer width="100%"/>
+		<s:Label fontSize="11" text="{dateDiff}" styleName="DarkGrayTextStyle"/>
+		<s:BitmapImage source="@Embed('assets/images/TimeIcon.png')" smooth="true" width="11" height="10" />
+	</s:HGroup>	
+	<s:Label left="43" right="10" top="22" fontSize="12" text="{_data.message}" id="msg" paddingBottom="4" styleName="BrownTextStyle"/>
+	
+	<s:Line width="100%" top="0">
+		<s:stroke>
+			<s:SolidColorStroke color="0x919597" weight="1" />
+		</s:stroke>
+	</s:Line>
+</s:Group>

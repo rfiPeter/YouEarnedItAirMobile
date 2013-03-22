@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- containers\mobile\myComponents\MyIOSSplashScreen.mxml -->
+<s:SplashScreenImage xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					 xmlns:s="library://ns.adobe.com/flex/spark">
+	
+	<fx:Script>
+		<![CDATA[
+			import it.youearned.model.AppModel;
+			import it.youearned.utils.IPhoneVersionUtil;
+			private var model:AppModel = AppModel.getInstance();
+			// Override getImageClass() to return an image for iOS.
+			override public function getImageClass(aspectRatio:String, dpi:Number, resolution:Number):Class {
+				// Is the application running on iOS?
+				trace("Splash Screen Loaded: ", IPhoneVersionUtil.getDevice());
+				if (Capabilities.version.indexOf("IOS") == 0) {
+					if(IPhoneVersionUtil.getDevice() == "iPhone3" || IPhoneVersionUtil.getDevice() == "iPhone4" || IPhoneVersionUtil.getDevice() == "iPhone5")
+						return LayoutImages.SplashScreen320240;
+					else if(IPhoneVersionUtil.getDevice() == "iPhone5")
+						return LayoutImages.SplashScreeniPhone5;
+					else if(IPhoneVersionUtil.getDevice() == "iPhone2")
+						return LayoutImages.SplashScreen130;
+					else
+						return super.getImageClass(aspectRatio, dpi, resolution);
+				}
+				else {
+					return super.getImageClass(aspectRatio, dpi, resolution);
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<!-- Default splashscreen image. -->
+	<s:SplashScreenImageSource dpi="160" aspectRatio="portrait" 
+							   source="{LayoutImages.SplashScreen130}"/>
+	<s:SplashScreenImageSource dpi="240" aspectRatio="portrait" 
+							   source="{LayoutImages.SplashScreen320240}"/>
+	<s:SplashScreenImageSource aspectRatio="landscape" 
+							   source="{LayoutImages.SplashScreenLandscape}"/>
+	
+	<s:SplashScreenImageSource aspectRatio="portrait" 
+							   source="{LayoutImages.SplashScreenPortrait}"/>
+</s:SplashScreenImage>

@@ -1,0 +1,46 @@
+/* CSS file */
+@namespace s "library://ns.adobe.com/flex/spark";
+
+s|Label.ActionBarTitleStyle
+{
+	color: #FFFFFF;
+	fontWeight: bold;
+}
+
+s|Label.RedTextStyle
+{
+	color: #d31c2c;
+}
+
+s|Label.BrownTextStyle
+{
+	color: #412c1e;
+}
+
+s|Label.DarkGrayTextStyle
+{
+	color: #919597;
+}
+
+s|Label.LightGrayTextStyle
+{
+	color: #f1f1f1;
+}
+
+
+s|Label.GreenTextStyle
+{
+	color: #73ae22;
+}
+
+s|Label.WhiteTextStyle
+{
+	color: #FFFFFF;
+}
+s|Button {
+	chromeColor: #d31c2c;
+	defaultButtonAppearance: beveled;
+	fontSize: 12;
+	color: #ffffff;
+	fontWeight: bold;
+}

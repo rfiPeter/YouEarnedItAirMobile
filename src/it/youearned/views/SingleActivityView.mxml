@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" width="{model.width}" height="100%" xmlns:components="it.youearned.components.*" creationComplete="view1_creationCompleteHandler(event)" resize="onResize(event)" softKeyboardActivate="showKeyboard(event)" softKeyboardDeactivate="hideKeyboard(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.greensock.TweenLite;
+			import com.greensock.TweenMax;
+						
+			import it.youearned.api.services.valueObjects.Activity;
+			import it.youearned.api.services.valueObjects.ActivitySet;
+			import it.youearned.api.services.valueObjects.AddCommentObject;
+			import it.youearned.api.services.valueObjects.SimpleComment;
+			import it.youearned.events.AddCommentEvent;
+			import it.youearned.events.LoadActivityEvent;
+			import it.youearned.events.UpdateViewEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.utils.AssetUtil;
+			import it.youearned.utils.DateDifferenceUtil;
+			
+			import mx.events.FlexEvent;
+			import mx.events.ResizeEvent;
+			import mx.formatters.DateFormatter;
+			
+			import spark.events.ViewNavigatorEvent;
+			
+			[Bindable]private var model:AppModel = AppModel.getInstance();
+			
+			[Bindable]public var title:String = "";
+			
+			private var _data:Object;
+			
+			public function get data():Object
+			{
+				return _data;
+			}
+			public function set data(value:Object):void
+			{
+				_data = value;
+				
+				if (_data is ActivitySet) {
+					activity = (data as ActivitySet).activity;					
+					setUpView();					
+				}
+				else if (_data is Activity) {
+					activity = _data as Activity;					
+					setUpView();
+				}
+				else {
+					// do something to hide the view...
+					trace('! an activity object');
+					return;
+				}
+				
+				var dt:Date = new Date(activity.date);
+				var dF:DateFormatter = new DateFormatter();
+				dF.formatString = "MM/DD/YYYY at LL:NNA";
+				title = dF.format(dt);
+				
+				if (activity.recipient.id == model.me.id) {
+					
+				}
+			}
+			
+			private function setUpView():void
+			{
+				if (!loaded)
+					return;
+												
+				privacyColor = (activity.is_private) ? PRIVATE : PUBLIC;
+				
+				publicPrivacyIcon.visible = publicPrivacyIcon.includeInLayout = ((activity.is_private) ? false : true);
+				privatePrivacyIcon.visible = privatePrivacyIcon.includeInLayout = ((activity.is_private) ? true : false);
+				
+				// for the timestamp
+				var d:Date = new Date(activity.date);					
+				timestamp = DateDifferenceUtil.difference(new Date, d);
+				
+				// for comments
+				commentsLength = activity.comments.length;
+				
+				// for "tags"
+				if (activity.category == null) {
+					// hide category tag...
+					categoryIcon.visible = categoryText.visible = false;
+				}
+				else {
+					categoryIcon.visible = categoryText.visible = true;
+					category = activity.category;
+				}
+				
+				if (activity.sender.id == model.me.id || activity.recipient.id == model.me.id) {
+					greenStarImg.visible = greenStarImg.includeInLayout = true;
+					pointsGivenLbl.visible = pointsGivenLbl.includeInLayout = true;
+					pointsGivenLbl.text = activity.points.toString();
+				}
+				else {
+					greenStarImg.visible = greenStarImg.includeInLayout = false;
+					pointsGivenLbl.visible = pointsGivenLbl.includeInLayout = false;
+				}
+			}
+			
+			
+			private const PRIVATE:uint = 0x919597;
+			private const PUBLIC:uint = 0xf1f1f1;
+			
+			[Bindable]private var category:String = "";
+			
+			[Bindable]private var timestamp:String = "";
+			
+			[Bindable]private var privacyColor:uint = PUBLIC;
+			
+			[Bindable]private var activity:Activity;
+			
+			[Bindable]private var commentsLength:int = 0;
+			
+			
+			protected function view1_creationCompleteHandler(event:FlexEvent):void
+			{
+				loaded = true;
+				if (_data != null)
+					setUpView();
+			}
+			
+			
+			
+			private var loaded:Boolean = false;			
+			private var commentsAdded:Boolean;
+			
+			protected function onResize(event:ResizeEvent):void
+			{
+				if (model.navigator) {
+					var diff:Number = height - model.navigator.height;
+					postTI.bottom = diff;
+				}
+			}
+			
+			protected function view1_viewDeactivateHandler(event:ViewNavigatorEvent):void
+			{
+				model.navigator.removeEventListener(ResizeEvent.RESIZE, onResize);
+			}
+			
+			protected function onPost(event:MouseEvent):void
+			{
+				var s:SimpleComment = new SimpleComment();
+				s.user_id = model.me.id;
+				s.message = commentTI.text;
+				var obj:AddCommentObject = new AddCommentObject;
+				obj.comment = s;
+				obj.activity_id = activity.id;
+								
+				new AddCommentEvent(obj).dispatch();
+				
+				commentTI.text = "";
+				
+				commentsAdded = true;
+				
+				commentsLength++;
+			}
+			
+			protected function onClose(event:Event):void
+			{
+				commentList.unsubscribe();
+				
+				if (commentsAdded)
+					new LoadActivityEvent().dispatch();
+				commentsAdded = false;
+				
+				new UpdateViewEvent(UpdateViewEvent.POP_VIEW).dispatch();
+			}
+						
+			protected function showKeyboard(event:SoftKeyboardEvent):void
+			{
+				trace("keyboardActivate");
+				var r:Rectangle = this.stage.softKeyboardRect;
+				
+				var n:Number = r.y + r.height;
+				var s:Number = model.height/n;
+				var tmp:Number = r.height * s;
+				postTI.bottom = tmp;
+			}
+			
+			protected function hideKeyboard(event:SoftKeyboardEvent):void
+			{
+				trace("keyboardDeActivate");
+				postTI.bottom = 0;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:BitmapImage source="{LayoutImages.PatternBackground}" fillMode="clip" width="{model.width}" top="-20" bottom="0"/>
+	
+	<s:Scroller left="10" right="10" top="{menu.height+4}" bottom="{postTI.height+4}">
+		<!--<s:Group width="100%" filters="{[AssetUtil.getDropshadow({distance:4,angle:45,color:0x666666,alpha:.25})]}">-->
+		<s:Group width="100%">
+			<s:Rect width="100%" height="100%">
+				<s:fill>
+					<s:SolidColor color="0xffffff"/>
+				</s:fill>
+			</s:Rect>
+				
+			<!-- header -->
+			
+			<!-- image piece -->
+			<s:BitmapImage left="10" top="10" width="41" height="41" smooth="true"
+					 source="{LayoutImages.DefaultProfileIcon}"/>
+			<s:Image left="10" top="10" width="41" height="41" smooth="true"
+					 source="{activity.sender.picture}/small"/>
+			<s:BitmapImage y="51" left="12" width="12" height="10" smooth="true"
+					 source="{LayoutImages.FromToArrow}"/>
+			<s:Image y="30" left="27" width="31" height="31" source="{LayoutImages.DefaultProfileIcon}" smooth="true"/>
+			<s:BitmapImage y="30" left="27" width="31" height="31" source="{activity.recipient.picture}/small" smooth="true"/>
+			
+			<!-- name piece -->
+			<s:HGroup left="63" top="10" verticalAlign="middle">
+				<s:Label fontSize="11" text="{activity.sender.first_name} {activity.sender.last_name}" styleName="RedTextStyle"/>
+				<s:Path data="L 5 4 L 0 8 L 0 0 z">
+					<s:fill>
+						<s:SolidColor color="0x919597" />
+					</s:fill>
+				</s:Path>
+				<s:Label fontSize="11" text="{activity.recipient.first_name} {activity.recipient.last_name}" styleName="RedTextStyle"/>
+			</s:HGroup>
+			
+			<!-- time piece -->
+			<s:HGroup left="63" top="30">
+				<s:Image width="11" height="12" source="{LayoutImages.GreenStar}" id="greenStarImg"/>
+				<s:Label text="{activity.points}" styleName="GreenTextStyle" fontSize="12" fontWeight="bold" id="pointsGivenLbl" />
+				<s:Image width="11" height="10" smooth="true"
+						 source="{LayoutImages.TimeIcon}"/>
+				<s:Label left="77" top="30" color="#919597" fontSize="10" text="{timestamp}"/>
+			</s:HGroup>
+			
+			
+			<!-- privacy piece -->
+			<s:Path data="L 37 0 L 37 32 L 0 0 z" right="0" top="0">
+				<s:fill>
+					<s:SolidColor color="{privacyColor}" />
+				</s:fill>
+			</s:Path>
+			<s:BitmapImage id="publicPrivacyIcon" right="4" top="4" width="15" height="12"
+						   source="{LayoutImages.PublicPrivacyIcon}" visible="false" includeInLayout="false"/>
+			<s:BitmapImage id="privatePrivacyIcon" right="4" top="4" width="9" height="11" smooth="true"
+						   source="{LayoutImages.PrivatePrivacyIcon}" visible="false" includeInLayout="false"/>
+			
+			<!-- line -->		
+			<s:Rect y="55" left="63" right="25" height="3">
+				<s:fill>
+					<s:SolidColor color="0xdddddd" />
+				</s:fill>
+			</s:Rect>
+			
+			
+			<!-- content -->
+			<s:Label id="desc" y="72" left="10" right="10" text="{activity.description}" styleName="BrownTextStyle"/>
+			
+			
+			<!-- footer -->
+			<s:Group id="footer" x="0" top="{desc.y+desc.height+4}" width="100%" height="30">
+				<s:Rect width="100%" height="100%">
+					<s:fill>
+						<s:SolidColor color="0xf1f1f1" />
+					</s:fill>
+				</s:Rect>
+				
+				<s:Image left="24" width="14" height="13" smooth="true"
+						 source="{LayoutImages.CommentIcon}" verticalCenter="1"/>
+				<s:Label left="4" fontSize="11" styleName="RedTextStyle" text="{commentsLength}" textAlign="left"
+						 verticalCenter="0"/>
+				
+				
+				<s:BitmapImage id="categoryIcon" right="4" width="13" height="9" smooth="true"
+							   source="{LayoutImages.TagsIcon}" verticalCenter="0"/>
+				<s:Label id="categoryText" right="22" fontSize="11" text="{category}" textAlign="right" verticalCenter="0"/>
+				
+			</s:Group>
+		
+			<components:CommentDisplay id="commentList" x="0" top="{footer.y+footer.height}" />		
+		</s:Group>
+	</s:Scroller>
+	
+	
+	
+	<!-- text input for comment -->
+	<s:Group width="100%" bottom="0" id="postTI" needsSoftKeyboard="true">
+		<s:Rect width="100%" height="100%">
+			<s:fill>
+				<s:LinearGradient rotation="90">
+					<s:GradientEntry color="0xf1f1f1"/>
+					<s:GradientEntry color="0x919597"/>
+				</s:LinearGradient>
+			</s:fill>
+		</s:Rect>
+		<s:TextInput id="commentTI" prompt="Add a comment..." left="6" top="6" bottom="6" width="{width-77}" />
+		<s:Button label="Post" height="30" right="6" top="6" bottom="6" click="onPost(event)"/>
+	</s:Group>
+	
+	<components:BackButtonActionBar id="menu" width="100%" close="onClose(event)" title="{title}" />
+	
+</s:Group>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		xmlns:controls="com.flexcapacitor.controls.*" 
+		xmlns:components="com.rockfish.components.*"
+		actionBarVisible="true" tabBarVisible="true" overlayControls="false" backgroundAlpha="0" creationComplete="init(event)">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.rockfish.model.AppModel;
+			import com.rockfish.presenters.YouTubePresenter;
+			
+			import mx.events.FlexEvent;
+			
+			import spark.transitions.CrossFadeViewTransition;
+			
+			private var model:AppModel = AppModel.getInstance();
+			[Bindable]
+			private var presenter:YouTubePresenter = model.getPresenter(YouTubePresenter) as YouTubePresenter;
+			
+			protected function init(event:FlexEvent):void
+			{
+				this.stage.autoOrients = true;
+				this.stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGE, orient);
+				this.stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGING, orienting);
+				presenter.view = this;
+				presenter.webView = this.webView;
+				presenter.shareButton = shareButton;
+				presenter.init();
+			}
+			
+			protected function back(event:MouseEvent):void
+			{
+				this.stage.autoOrients = false;
+				webView.hideWebView();
+				var fade:CrossFadeViewTransition = new CrossFadeViewTransition();
+				this.navigator.popView(fade);
+			}
+			
+			protected function orienting(event:StageOrientationEvent):void
+			{
+					webView.visible = false;
+					this.actionBarVisible = false;
+					this.tabBarVisible = false;
+			}
+			
+			protected function orient(event:StageOrientationEvent):void
+			{
+				if (this.stage.orientation != StageOrientation.DEFAULT) {
+					this.actionBarVisible = false;
+					this.tabBarVisible = false;
+				}
+				else {
+					this.actionBarVisible = true;
+					this.tabBarVisible = true;
+				}
+				webView.visible = true;
+			}
+			
+			protected function shareClick(event:MouseEvent):void
+			{
+				webView.snapshotMode = true;
+			}
+			
+			protected function wvClick(event:MouseEvent):void
+			{
+				if(webView.snapshotMode)
+					webView.snapshotMode = false;
+			}
+			
+			protected function webViewComplete(event:Event):void
+			{
+				webView.visible = true;
+				busy.visible = false;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<controls:WebView id="webView" navigationSupport="true" width="100%" height="100%" click="wvClick(event)" visible="false" complete="webViewComplete(event)"/>
+	<components:MittLoader horizontalCenter="0" width="100%" verticalCenter="0" id="busy" visible="true"/>
+	<s:navigationContent>
+		<s:Button id="backButton" verticalCenter="0" label="Back" click="back(event)" skinClass="com.rockfish.skins.HeaderBackButtonSkin"/>
+	</s:navigationContent>
+	<s:actionContent>
+		<components:ShareCalloutButton id="shareButton" label="Share" verticalCenter="0" data="{presenter.socialShare}" click="shareClick(event)"/>
+	</s:actionContent>
+</s:View>

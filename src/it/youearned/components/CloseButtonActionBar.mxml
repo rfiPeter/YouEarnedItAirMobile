@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" width="{model.width}">
+	
+	<fx:Script>
+		<![CDATA[
+			import it.youearned.model.AppModel;
+			
+			[Bindable]private var model:AppModel = AppModel.getInstance();
+			
+			[Bindable]public var title:String = "";
+			
+			protected function onBack(event:MouseEvent):void
+			{
+				model.mainNavigator.popView();
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Metadata>
+		[Event(name="close", type="flash.events.Event")]
+	</fx:Metadata>
+	<s:BitmapImage id="backgroundImg" width="{model.width}"
+				   scaleMode="letterbox" smooth="true"
+				   source="{LayoutImages.HeaderBackground}"/>	
+	<s:Button label="Close" verticalCenter="0" left="10" click="onBack(event)" fontSize="14" />
+	<s:Label horizontalCenter="0" text="{title}" verticalCenter="0" styleName="ActionBarTitleStyle"/>
+</s:Group>

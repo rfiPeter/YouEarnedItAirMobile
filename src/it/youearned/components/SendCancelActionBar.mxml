@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" width="{model.width}">
+	
+	<fx:Script>
+		<![CDATA[
+			import it.youearned.model.AppModel;
+			
+			[Bindable]
+			private var model:AppModel = AppModel.getInstance();
+					
+			[Bindable]
+			public var title:String="";
+			
+			protected function onCancel(event:MouseEvent):void
+			{
+				var e:Event = new Event(Event.CANCEL);
+				dispatchEvent(e);
+			}
+			
+			protected function onSend(event:MouseEvent):void
+			{
+				var e:Event = new Event(Event.COMPLETE);
+				dispatchEvent(e);
+			}
+			
+			[Bindable]public var nextButtonLabel:String = "Next";
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Metadata>
+		[Event(name="cancel", type="flash.events.Event")]
+		[Event(name="complete", type="flash.events.Event")]
+	</fx:Metadata>
+		
+	<s:BitmapImage source="{LayoutImages.HeaderBackground}" scaleMode="letterbox" width="{model.width}" />
+	
+	<s:Button label="Cancel" verticalCenter="0" left="10" click="onCancel(event)" skinClass="it.youearned.skins.RedButtonSkin" height="35" width="75" />
+	
+	<s:Button label="{nextButtonLabel}" verticalCenter="0" right="10" click="onSend(event)" skinClass="it.youearned.skins.RedButtonSkin" height="35" width="75" />
+	
+	
+	<s:Label horizontalCenter="0" text="{title}" verticalCenter="0" styleName="ActionBarTitleStyle"/>
+	
+</s:Group>

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" width="{model.width}" resize="group1_resizeHandler(event)" updateComplete="init()">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.greensock.TweenLite;
+			
+			import mx.events.ResizeEvent;
+			
+			import it.youearned.events.ToggleMenuEvent;
+			import it.youearned.events.ToggleSendPointsEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.utils.AssetUtil;
+			
+			[Bindable]
+			private var model:AppModel = AppModel.getInstance();
+					
+			private function sendPoints(event:MouseEvent):void
+			{
+				add.enabled = false;
+				var e:ToggleSendPointsEvent = new ToggleSendPointsEvent();
+				dispatchEvent(e);
+			}
+			
+			
+			private function toggleMenu(event:MouseEvent):void
+			{
+				_menuOpen = !_menuOpen;
+								
+				var e:ToggleMenuEvent = new ToggleMenuEvent(_menuOpen);
+				dispatchEvent(e);
+			}
+			
+			private var _menuOpen:Boolean = false;
+			public function get menuOpen():Boolean
+			{
+				return _menuOpen;
+			}
+			
+			private var _title:String="";
+
+			[Bindable]
+			public function get title():String
+			{
+				return _title;
+			}
+
+			public function set title(value:String):void
+			{
+				_title = value;
+			}
+			
+			
+			override public function set height(value:Number):void
+			{
+				super.height = value;
+				
+				model.menuBarHeight = value;
+			}
+			
+			public function init():void
+			{
+				trace("menuComplete");
+				// TODO Auto Generated method stub
+				if(model.deviceType == "tablet") {
+					//what's up with iPad 3????
+					if(model.deviceOS == "iOS" && model.deviceOsDetails == "iPad3")
+						trace("iPad3StageSIze:", stage.stageWidth)
+						//this.width = stage.stageWidth - model.menu.width;
+					//else
+					this.width = stage.stageWidth - model.menu.width;
+					actionLabel.left = (this.width / 2 ) - (actionLabel.width / 2);
+					add.left = this.width - (add.width) - 4;
+					return;
+				}
+				else {
+					//this.width = stage.stageWidth;
+					add.right = 0;
+					actionLabel.left = (stage.stageWidth / 2 ) - (actionLabel.width / 2);
+					add.alpha = 1;
+					
+					return;
+				}
+			}
+			
+			protected function group1_resizeHandler(event:ResizeEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("resize:",event.oldWidth, "|", this.width);
+				
+				if(model.deviceType == "tablet") {
+					this.x = 0;
+					if(stage.stageHeight > stage.stageWidth)
+						actionLabel.left = ((model.portraitWidth-model.menu.width) / 2 ) - (actionLabel.width / 2);
+					else
+						actionLabel.left = ((model.landscapeWidth-model.menu.width) / 2 ) - (actionLabel.width / 2);
+					return;
+				}
+				else {
+					//actionLabel.left = (model.width / 2 ) - (actionLabel.width / 2);
+					if(this.width == model.width)
+						add.alpha = 1;
+					else
+						add.alpha = 0;
+					return;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+		
+	<fx:Metadata>
+		[Event(name="toggleMenu", type="it.youearned.events.ToggleMenuEvent")]
+		[Event(name="toggleSendPoints", type="it.youearned.events.ToggleSendPointsEvent")]
+	</fx:Metadata>
+	
+	<s:BitmapImage id="backgroundImg" width="100%"
+				   scaleMode="stretch" smooth="true" height="{this.height}"
+				   source="{LayoutImages.HeaderBackground}"/>	
+	
+	<s:Button id="menuButton" x="4" width="45" height="45" label="M" verticalCenter="0" click="toggleMenu(event)" skinClass="it.youearned.skins.MenuButtonSkin" />
+	<s:Button id="add" width="45" height="45" label="+" verticalCenter="0" click="sendPoints(event)" skinClass="it.youearned.skins.SendPointsButtonSkin" />
+	<s:Label id="actionLabel" text="{title}" verticalCenter="0" horizontalCenter="0" styleName="ActionBarTitleStyle" width="240" textAlign="center"/>
+</s:Group>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" width="{model.width}" initialize="init()">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import it.youearned.model.AppModel;
+			
+			[Bindable]private var model:AppModel = AppModel.getInstance();
+			
+			[Bindable]public var title:String = "";
+			
+			protected function onBack(event:MouseEvent):void
+			{
+				var e:Event = new Event(Event.CLOSE);
+				dispatchEvent(e);
+			}
+			
+			override public function set height(value:Number):void
+			{
+				super.height = value;
+				
+				model.menuBarHeight = value;
+			}
+			
+			public function init():void
+			{
+				// TODO Auto-generated method stub
+				if(model.deviceType == "tablet") {
+					this.width = stage.stageWidth - 262;
+				}
+				backgroundImg.width = this.width;
+				backgroundImg.height = this.height;
+				titleLabel.left = (this.width / 2) - (titleLabel.width / 2);
+				titleLabel.text = title;
+				return
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Metadata>
+		[Event(name="close", type="flash.events.Event")]
+	</fx:Metadata>
+	<s:BitmapImage id="backgroundImg"
+				   scaleMode="stretch" smooth="true"
+				   source="{LayoutImages.HeaderBackground}"/>	
+	<s:Button id="backButton" label="Back" verticalCenter="0" left="10" skinClass="it.youearned.skins.BackArrowButtonSkin" width="45" height="45" />
+	<s:Label id="titleLabel" horizontalCenter="0" verticalCenter="0" styleName="ActionBarTitleStyle"/>
+</s:Group>

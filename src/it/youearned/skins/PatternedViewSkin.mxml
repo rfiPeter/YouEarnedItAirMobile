@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Skin xmlns:fx="http://ns.adobe.com/mxml/2009" creationComplete="skin1_creationCompleteHandler(event)"
+		xmlns:s="library://ns.adobe.com/flex/spark" contentBackgroundColor="0xdedede">
+	<!-- host component -->
+	<fx:Metadata>
+		[HostComponent("spark.components.View")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			import mx.events.ResizeEvent;
+			
+			import it.youearned.model.AppModel;
+			
+			private var model:AppModel = AppModel.getInstance();
+			
+			
+			
+			protected function skin1_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("StageWidthFromSkin", stage.stageWidth)
+				trace("skinCreationComplete");
+				if(model.deviceType == "tablet") {
+					backgroundImage.source = LayoutImages.PatternBackgroundLg;
+				}
+				//stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGE, resizeBackground);
+			}
+			
+			protected function skin1_resizeHandler(event:ResizeEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("skin resize");
+				if(model.deviceType != "tablet")
+					return;
+				
+				if(model.menu.width != 262)
+					return;
+				
+				if(backgroundImage.width != this.stage.width - model.menu.width)
+					return;
+				
+				trace("stageWIdth:", stage.stageWidth);
+				trace("backgroundImageWidth", backgroundImage.width);
+				trace("contentGroupWidth", contentGroup.width);
+				backgroundImage.width = this.stage.width - model.menu.width;
+				//contentGroup.width = this.stage.width - model.menu.width;
+				return;
+			}
+			
+			protected function skin2_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+			protected function resizeBackground():void
+			{
+				// TODO Auto-generated method stub
+				/*if(model.menu.width == 262) {
+					backgroundImage.width = this.stage.width - model.menu.width;
+					//contentGroup.width = this.stage.width - model.menu.width;
+					trace("stageWIdth:", stage.stageWidth);
+					trace("backgroundImageWidth", backgroundImage.width);
+					trace("contentGroupWidth", contentGroup.width);
+				}
+				// TODO Auto-generated method stub
+				trace("skin resize");*/
+				if(model.deviceType != "tablet") //not a tablet
+					return;
+				
+				if(model.menu.width != 262) //menu is not out
+					return;
+				
+				if(backgroundImage.width == stage.stageWidth - 262)
+					return;
+				
+				
+				trace("orientationChanged");
+				
+				trace("stageWIdth:", stage.stageWidth);
+				trace("backgroundImageWidth", backgroundImage.width);
+				trace("contentGroupWidth", contentGroup.width);
+				backgroundImage.width = contentGroup.width = stage.stageWidth - 262;
+				backgroundImage.left = contentGroup.left = 0
+				
+				trace("stageWIdth:", stage.stageWidth);
+				trace("backgroundImageWidth", backgroundImage.width);
+				trace("contentGroupWidth", contentGroup.width);
+				trace("backgroundImageWidth", backgroundImage.x);
+				trace("contentGroupWidth", contentGroup.x);
+				/*if(backgroundImage.width > stage.stageWidth - 262) {
+					
+				}
+				else {*/
+					//invalidateDisplayList();
+					//backgroundImage.setLayoutBoundsSize(stage.stageWidth - 262, stage.stageHeight);
+					//backgroundImage.setLayoutBoundsPosition(0,0);
+					return;
+				/*}*/
+				
+				return;
+			}
+			
+		]]>
+	</fx:Script>
+	<!-- states -->
+	<s:states>
+		<s:State name="disabled" />
+		<s:State name="normal" />
+	</s:states>
+	<s:Image id="backgroundImage" smooth="true" 
+			 scaleMode="letterbox" width="100%" top="0" source="{LayoutImages.PatternBackground}"/>
+	<s:Group id="contentGroup" width="100%" right="100%" contentBackgroundColor="0xdedede"/>
+</s:Skin>

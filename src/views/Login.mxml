@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:controls="com.flexcapacitor.controls.*"
+		xmlns:s="library://ns.adobe.com/flex/spark" actionBarVisible="false" viewDeactivate="view1_viewDeactivateHandler(event)" viewActivate="auth()" backgroundColor="0xc01923" destructionPolicy="never">
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.protocols.oauth2.OAuth2;
+			import com.adobe.protocols.oauth2.event.GetAccessTokenEvent;
+			import com.adobe.protocols.oauth2.grant.AuthorizationCodeGrant;
+			import com.adobe.protocols.oauth2.grant.IGrantType;
+			import com.adobe.protocols.oauth2.utils.URLParser;
+			
+			import mx.events.FlexEvent;
+			
+			import spark.events.ViewNavigatorEvent;
+			import spark.transitions.CrossFadeViewTransition;
+			
+			import it.youearned.commands.UpdateViewCommand;
+			import it.youearned.events.LoginEvent;
+			import it.youearned.events.ToggleMenuEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.presenters.LoginPresenter;
+			import it.youearned.skins.YEIButtonBarSkin;
+			
+			import org.as3commons.logging.setup.LogSetupLevel;
+			[Bindable]private var model:AppModel = AppModel.getInstance();
+			private var presenter:LoginPresenter = model.getPresenter(LoginPresenter) as LoginPresenter;
+			
+			private var stageWebView:StageWebView;
+			
+			private var inited:Boolean = false;
+			
+			override public function set data(value:Object):void
+			{
+				super.data = value;
+				if (!stageWebView)
+					stageWebView = new StageWebView;
+				
+			}
+			
+			private var oauth2:OAuth2;							
+			private var grant:IGrantType;
+			
+			public function auth():void
+			{	
+				
+				oauth2= new OAuth2("https://login.youearnedit.com/oauth/authorize","https://login.youearnedit.com/oauth/token",LogSetupLevel.ALL);
+				grant = new AuthorizationCodeGrant(webView.webView,"35E69C84-63D9-4578-A2F8-190F175975C5","DDF42D43-5AF3-485A-8547-1127C89F666B","https://login.youearnedit.com","API");
+				//oauth2= new OAuth2("http://login.dev.youearnedit.com/oauth/authorize","http://login.dev.youearnedit.com/oauth/token",LogSetupLevel.ALL);
+				//grant = new AuthorizationCodeGrant(webView.webView,"12345","67890","http://login.dev.youearnedit.com","API");
+				oauth2.addEventListener(GetAccessTokenEvent.TYPE, onGetAccessToken);
+				oauth2.getAccessToken(grant);
+				
+				if(data == null)
+					return;
+			}
+			
+			
+			protected function onGetAccessToken(event:GetAccessTokenEvent):void
+			{				
+				if (event.errorCode == null && event.errorMessage == null) {
+					trace('onGetAccessToken');
+					if (stageWebView)
+						stageWebView.viewPort = null;
+						//stageWebView.dispose();
+					model.authToken = event.accessToken;
+					new LoginEvent().dispatch();
+				}
+				else {
+					trace(event.errorCode, event.errorMessage);
+					
+				}
+			}
+			
+			
+			
+			/*protected function onRender(event:Event):void
+			{
+				var r:Rectangle = this.getBounds(stage);
+				trace(r.width);
+				trace(r.height);
+				if (r.width > 0 && r.height > 0) {
+					if (!stageWebView)
+						stageWebView = new StageWebView;
+					try {
+						stageWebView.viewPort = r;
+					}
+					catch (e:Error) {
+					}
+				}
+			}*/
+			
+			protected function view1_viewDeactivateHandler(event:ViewNavigatorEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+				if(!data)
+					data = new Object();
+				
+				data.webViewVisible = true;
+				
+				if(model.deviceType == "phone") {
+					presenter.toggleMenu(new ToggleMenuEvent(false));
+				}
+				if(webView.webView.stage)
+					webView.hideWebView();
+				trace("login view deactivated");
+				
+			}
+			
+			private function showWebView(event:Event):void
+			{
+				webView.showWebView();
+			}
+			
+			protected function terms(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				var fade:CrossFadeViewTransition = new CrossFadeViewTransition();
+				model.mainNavigator.pushView(views.Terms, null, null, fade);
+			}
+			
+			protected function aboutYouEarnedIt(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				var fade:CrossFadeViewTransition = new CrossFadeViewTransition();
+				model.mainNavigator.pushView(views.AboutYEI, null, null, fade);
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<controls:WebView id="webView" navigationSupport="true" width="100%" bottom="48" height="100%" visible="false" horizontalCenter="0" complete="showWebView(event)"/>
+	<s:BitmapImage width="100%" fillMode="scale" scaleMode="letterbox" smooth="true"
+				   source="{LayoutImages.Background}"/>
+	<s:Rect width="100%" height="48" bottom="0">
+		<s:fill>
+			<s:SolidColor color="0xc01923" alpha=".6"/>
+		</s:fill>
+	</s:Rect>
+	<s:Label textDecoration="underline" click="terms(event)" text="Terms of Use" fontSize="14" color="0xffffff" bottom="15" width="50%" textAlign="center" left="0"/>
+	<s:Label textDecoration="underline" click="aboutYouEarnedIt(event)" text="About YouEarnedIt" fontSize="14" color="0xffffff" bottom="15" width="50%" textAlign="center" right="0"/>
+	<!--<s:ButtonBar bottom="0" width="100%" height="40" fontSize="14" requireSelection="true" selectedIndex="0" id="bb" visible="true" cacheAsBitmap="false" skinClass="it.youearned.skins.YEIButtonBarSkin">
+		<s:dataProvider>
+			<s:ArrayList>
+				<fx:Object label="Termsof Use" />
+				<fx:Object label="About YouEarnedIt" />
+			</s:ArrayList>
+		</s:dataProvider>
+	</s:ButtonBar>-->
+</s:View>

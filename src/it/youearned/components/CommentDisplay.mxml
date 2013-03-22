@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" width="100%" implements="com.rockfish.observers.IObserver" creationComplete="subscribe()">
+	<s:layout>
+		<s:VerticalLayout gap="0"/>
+	</s:layout>
+	<fx:Script>
+		<![CDATA[
+			import it.youearned.api.services.valueObjects.Comment;
+			import it.youearned.api.services.valueObjects.CommentSet;
+			import it.youearned.api.services.valueObjects.CommentSetObject;
+			import it.youearned.model.AppModel;
+			import it.youearned.renderers.CommentItemRenderer;
+			
+			import mx.collections.IList;
+			[Bindable]private var model:AppModel = AppModel.getInstance();
+			
+			public function subscribe():void{
+				model.subscribe(this);
+			}
+			public function unsubscribe():void{
+				model.unsubscribe(this);
+			}
+			public function update(key:String,value:Object):void{
+				if (key=="comments") {
+					for each (var o:CommentSet in value.data) {					
+						if (!commentsDictionary)
+							commentsDictionary = new Dictionary;
+						
+						if (commentsDictionary[o.comment.id]) {
+							// skip cuz we already have! :D
+						}
+						else {
+							var r:CommentItemRenderer = new CommentItemRenderer();
+							r.data = o.comment;
+							addElement(r);
+							commentsDictionary[o.comment.id] = r;
+						}
+					}
+				}
+			}
+			
+			private var commentsDictionary:Dictionary;
+			
+		]]>
+	</fx:Script>	
+</s:Group>

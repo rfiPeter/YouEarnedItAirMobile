@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 width="100%"
+		 height.category="100%"
+		 height.ready="50" resize="onResize(event)">
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayList;
+			import mx.collections.IList;
+			import mx.events.ResizeEvent;
+			
+			import spark.events.IndexChangeEvent;
+			
+			import it.youearned.model.AppModel;
+			import it.youearned.utils.AssetUtil;
+			
+			[Bindable]
+			public var dataProvider:IList;
+			
+			
+			
+			[Bindable]
+			private var p:ArrayList = new ArrayList([{icon:privateIcon,label:"Only visible to you, recipients, and admins.",value:true},{icon:publicIcon,label:"Visible to others.",value:false}]);
+			
+			protected function categoryChange(event:IndexChangeEvent):void
+			{
+				if (categoryList.selectedIndex == -1) {
+					currentState = "ready";
+					return;
+				}
+				categoryText.label = categoryList.selectedItem.category.name;
+				currentState = "ready";
+				categoryText.selected = false;
+				categoryText.invalidateSize();
+			}
+			
+			protected function privacyChange(event:IndexChangeEvent):void
+			{
+				trace(privacyList.selectedIndex);
+				trace(privacyList.selectedItem.value);
+				if (privacyList.selectedIndex == -1 || privacyList.selectedItem.value) {
+					privacyText.setStyle('icon',privateIcon);
+				}
+				else {
+					privacyText.setStyle('icon',publicIcon);
+				}
+				
+				currentState = "ready";
+			}
+			
+			private function updateState(newState:String):void
+			{
+				if (currentState != "ready") {
+					if (currentState == "category") {
+						categoryChange(null);
+					}
+					else {
+						privacyChange(null);
+					}
+					return;
+				}
+				
+				currentState = newState;
+				
+				
+			}
+			
+			public function get category():int
+			{
+				if (categoryList == null || categoryList.selectedItem == null)
+					return 0;
+				
+				trace("categoryList: ", categoryList);
+				trace("categoryList.selectedItem: ", categoryList.selectedItem);
+				
+				trace("categoryList.selectedItem.category.id: ", categoryList.selectedItem.category.id);
+				return categoryList.selectedItem.category.id;
+			}
+			
+			public function get privacy():Boolean
+			{
+				if (privacyList == null || privacyList.selectedItem == null)
+					return false;
+				
+				trace(privacyList.selectedItem.value);
+				return privacyList.selectedItem.value;
+			}
+			
+			
+			public function clear():void
+			{
+				
+			}
+			
+			protected function onResize(event:ResizeEvent):void
+			{
+				trace('resizing category picker', this.height);
+				if (currentState == "category") {
+					//categoryList.height = AppModel.getInstance().height - this.y;
+				}
+			}
+			
+			[Embed('assets/images/RedPublic.png')]
+			private const publicIcon:Class;
+			
+			[Embed('assets/images/RedPrivate.png')]
+			private const privateIcon:Class;
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="ready"/>
+		<s:State name="category"/>
+		<s:State name="privacy"/>
+	</s:states>
+	
+	<s:Rect width="100%" height="50">
+		<s:fill>
+			<s:LinearGradient rotation="90">
+				<s:GradientEntry color="0xf1f1f1"/>
+				<s:GradientEntry color="0xcccccc"/>
+			</s:LinearGradient>
+		</s:fill>
+	</s:Rect>
+		
+	<s:ToggleSwitch id="categoryText" top="10" left="10" width="124" height="30" label="Category"
+					click="updateState('category')" icon="@Embed('assets/images/RedTag.png')"
+					skinClass="it.youearned.skins.IconToggleButtonSkin"/>
+	<s:List id="categoryList" includeIn="category" left="0" right="0" top="50"
+			change="categoryChange(event)" contentBackgroundAlpha="0" dataProvider="{dataProvider}"
+			itemRenderer="it.youearned.renderers.CategoryItemRenderer" verticalScrollPolicy="on" horizontalScrollPolicy="off"
+			selectionColor="0xf1f1f1">
+		<s:layout>
+			<s:VerticalLayout clipAndEnableScrolling="true" gap="0" requestedRowCount="2"/>
+		</s:layout>
+	</s:List>
+	
+	
+	<s:ToggleSwitch id="privacyText" right="10" top="10" click="updateState('privacy')" icon="{publicIcon}"
+					skinClass="it.youearned.skins.IconToggleButtonSkin" height="30"/>
+	<s:List id="privacyList" left="0" right="0" top="50" dataProvider="{p}" labelField="label" includeIn="privacy" change="privacyChange(event)" contentBackgroundAlpha="0" itemRenderer="it.youearned.renderers.PublicPrivateItemRenderer" />
+</s:Group>

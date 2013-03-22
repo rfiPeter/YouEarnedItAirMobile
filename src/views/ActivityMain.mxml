@@ -1,0 +1,668 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:components="it.youearned.components.*" 
+		render="view1_renderHandler(event)"
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		actionBarVisible="false" contentBackgroundAlpha="0" backgroundAlpha="0"
+		viewActivate="activateView(event)"
+		viewDeactivate="deactivateView(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.greensock.TweenLite;
+			import com.greensock.easing.Back;
+			
+			import mx.core.FlexGlobals;
+			import mx.events.CollectionEvent;
+			import mx.events.FlexEvent;
+			import mx.events.PropertyChangeEvent;
+			import mx.events.TouchInteractionEvent;
+			
+			import spark.events.IndexChangeEvent;
+			import spark.events.ViewNavigatorEvent;
+			import spark.layouts.TileLayout;
+			import spark.layouts.VerticalLayout;
+			import spark.transitions.SlideViewTransition;
+			import spark.transitions.ViewTransitionDirection;
+			
+			import flashx.textLayout.container.ScrollPolicy;
+			
+			import it.youearned.events.LoadActivityEvent;
+			import it.youearned.events.ToggleMenuEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.presenters.ActivityPresenter;
+			
+			[Bindable]
+			private var model:AppModel = AppModel.getInstance();
+			
+			private var presenter:ActivityPresenter = model.getPresenter(ActivityPresenter) as ActivityPresenter;
+			private var deviceType:String;
+			
+			private var stateOfBeing:String;
+			
+			private var _scrollPosition:Object;
+
+			[Bindable]
+			public function get scrollPosition():Object
+			{
+				if(_scrollPosition) {
+					return _scrollPosition;
+				}
+				_scrollPosition = new Object();
+				_scrollPosition.hsp = "0";
+				_scrollPosition.vsp = "0";
+				return _scrollPosition;
+			}
+
+			public function setScrollPosition(x:String,y:String):void
+			{
+				_scrollPosition.hsp = x.toString();
+				_scrollPosition.vsp = y.toString();
+			}
+
+			
+			override public function set data(value:Object):void
+			{
+				trace("activityViewData: ", JSON.stringify(super.data));
+				if(value == null) {
+					value = new Object();
+					value.scrollPosition = 0;
+				}
+					
+				
+				super.data = value;
+				
+				
+				trace("activity view data set");
+				//trace("activityViewData: ", JSON.stringify(value));
+			}
+			
+			protected function activateView(event:ViewNavigatorEvent):void
+			{
+				if (model.deviceType == "tablet") {
+					deviceType = "tablet";
+					menu.left = 0;
+					menu.right = 0;
+					menu.width = stage.stageWidth - 262;
+					menu.menuButton.visible = false;
+					menu.init();
+				}
+				else {
+					deviceType = "phone";
+					menu.percentWidth = 100;
+					this.addEventListener(TransformGestureEvent.GESTURE_SWIPE, swipeNavigate);
+				}
+				
+				// TODO Auto-generated method stub
+				trace("activity view activated");
+				
+				if(data) {
+					if(data.currentState == "readyTablet" && model.currentOrientation == "landscape") {
+						this.currentState = data.currentState;
+					}
+					else if(data.currentState == "readyTabletPortrait" && model.currentOrientation == "landscape") {
+						this.currentState = "readyTablet";
+					}	
+					else {
+						this.currentState = data.currentState;
+					}
+					if(data.scrollPosition) {
+						setScrollPosition(data.scrollPosition.hsp, data.scrollPosition.vsp)
+						//this.scrollPosition = data.scrollPosition;
+					}
+					if(data.dataProvider)
+						presenter.setProvider();
+					trace("activityViewDataRevived: ", JSON.stringify(data));
+				}
+				
+				this.initialize();
+				
+				if (model.deviceType == "tablet") {
+					presenter.toggleMenu(new ToggleMenuEvent(true));
+					this.stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGE, orient);
+					this.stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGING, orienting);
+				}
+				else {
+					presenter.toggleMenu(new ToggleMenuEvent(false));
+				}
+				
+				this.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKey);
+				menu.actionLabel.addEventListener(MouseEvent.CLICK, resetList);
+				var pc:PropertyChangeEvent
+				feedList.dataGroup.addEventListener(PropertyChangeEvent.PROPERTY_CHANGE, scrollChange);
+				presenter.init(this.updateState, feedList);
+				
+				var la:LoadActivityEvent
+				NativeApplication.nativeApplication.addEventListener(Event.ACTIVATE, onInvoke);
+				//NativeApplication.nativeApplication.addEventListener(InvokeEvent.INVOKE, onInvoke);
+				
+			}
+			
+			protected function onInvoke(event:Event):void
+			{
+				//check to see if there is a new version
+				this.currentState = "loading";
+					new LoadActivityEvent().dispatch();
+			}
+			protected function deactivateView(event:ViewNavigatorEvent):void
+			{
+				// TODO Auto-generated method stub
+				if (data == null)
+					data = new Object();
+				this.stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKey);
+				this.stage.removeEventListener(StageOrientationEvent.ORIENTATION_CHANGE, orient);
+				this.stage.removeEventListener(StageOrientationEvent.ORIENTATION_CHANGING, orienting);
+				
+				data.currentState = this.currentState;
+				data.scrollPosition = new Object;
+				data.scrollPosition.hsp = feedList.layout.horizontalScrollPosition.toString();
+				data.scrollPosition.vsp = feedList.layout.verticalScrollPosition.toString();
+				
+				if(feedList.dataProvider)
+					data.dataProvider = "true";
+				
+				//feedList.dataProvider = null;
+				
+				trace("activityViewDataSaved: ", JSON.stringify(data));
+			}
+			private function updateState(st:String):void
+			{
+				if(st == currentState)
+					return;
+				
+				trace("deviceOrientation: ", model.deviceOrientation);
+				trace("currentOrientation: ", model.currentOrientation);
+				if(st == "loading") {
+					if(feedList.dataProvider)
+						feedList.enabled = false;
+				}
+				if(st == "ready") {
+					feedList.enabled = true;
+					//busy.visible = false;
+					//hideBusy();
+					
+					if(model.deviceType == "tablet" && model.currentOrientation == "portrait") {
+						this.currentState = "readyTabletPortrait";
+						st = "readyTabletPortrait";
+					}
+					else if(model.deviceType == "tablet") {
+						this.currentState = "readyTablet";
+						st = "readyTablet";
+					}
+					else {
+						this.currentState = st;
+					}
+					presenter.setProvider();
+					
+					feedList.dataProvider.addEventListener(CollectionEvent.COLLECTION_CHANGE, scroll);
+				}
+				else {
+					this.currentState = st;
+				}
+				trace(this.currentState);
+			}
+			
+			
+			protected function snap(event:TouchInteractionEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("snap");
+			}
+			private function swipeNavigate(swipe:TransformGestureEvent):void
+			{
+				// TODO Auto Generated method stub
+				if (swipe.offsetX == 1 ) {
+					presenter.toggleMenu(new ToggleMenuEvent(true));
+				}
+				else if (swipe.offsetX == -1 ) {
+					presenter.toggleMenu(new ToggleMenuEvent(false));
+				}
+			}
+			
+			protected function selectItem(event:IndexChangeEvent):void
+			{
+				// TODO Auto-generated method stub
+				var slideTrans:SlideViewTransition = new SlideViewTransition();
+				slideTrans.direction = ViewTransitionDirection.LEFT;
+				model.mainNavigator.pushView(views.SingleActivity, presenter.feed.dataProvider.getItemAt(event.newIndex), null, slideTrans);
+				
+				this.setScrollPosition(feedList.layout.horizontalScrollPosition.toString(),feedList.layout.verticalScrollPosition.toString());
+			}
+			
+			protected function view1_renderHandler(event:Event):void
+			{
+				trace("rendering");
+				/*if (model.deviceType == "tablet") {
+					deviceType = "tablet";
+					menu.x = 0;
+					menu.width = stage.stageWidth - 262;
+					menu.menuButton.visible = false;
+				}
+				else {
+					deviceType = "phone";
+					menu.percentWidth = 100;
+					this.addEventListener(TransformGestureEvent.GESTURE_SWIPE, swipeNavigate);
+				}*/
+			}
+			
+			private function orienting(event:StageOrientationEvent):void
+			{
+
+				mainGroup.includeInLayout = false;
+				menu.includeInLayout = false;
+			}
+			
+			private function orient(event:StageOrientationEvent):void
+			{
+				//menu.init();
+				//mainGroup.percentWidth = 100;
+				mainGroup.includeInLayout = true;
+				if(event.target) {
+					if (this.stage.stageWidth < this.stage.stageHeight) {
+						this.currentState = "readyTabletPortrait";
+						layoutTabletPortrait();
+						menu.x = 0;
+						menu.includeInLayout = true;
+						menu.init();
+						return;
+					}
+					else {
+						this.currentState = "readyTablet";
+						layoutTabletLandscape();
+						menu.x = 0;
+						menu.includeInLayout = true;
+						menu.init();
+						return;
+					}
+				}
+			}
+			
+			private function listActivate():void
+			{
+				//feedList.dataProvider.addEventListener(CollectionEvent.COLLECTION_CHANGE, scroll);
+				trace("listReady: ", this.currentState, "|", stateOfBeing);
+				
+				
+				if(model.deviceType == "tablet" && stage.stageWidth < stage.stageHeight) {
+					this.currentState = stateOfBeing = "readyTabletPortrait";
+				}
+				else if (model.deviceType == "tablet" && stage.stageWidth >= stage.stageHeight) {
+					this.currentState = stateOfBeing = "readyTablet";
+				}
+				else {
+					this.currentState = stateOfBeing = "ready"
+				}
+
+				if(this.currentState == "readyTablet") {
+					layoutTabletLandscape();
+				}
+				else if (this.currentState == "readyTabletPortrait") {
+					layoutTabletPortrait();
+				}
+				else {
+					layoutPhone();
+				}
+				//feedList.top = menu.height + 1;
+				feedList.visible = true;
+				//busy.visible = false;
+				//hideBusy();
+				if(data == null)
+					return;
+				trace(data.scrollPosition);
+				/*if(model.deviceType == "tablet" && model.currentOrientation == "landscape") {
+					trace("restore horizontal scroll");
+					var restoredHSP:Number = data.scrollPosition as Number;
+					trace("restoredHSP: ", restoredHSP);
+					feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.ON);
+					feedList.layout.horizontalScrollPosition = restoredHSP;
+					data.restoredHSP = restoredHSP;
+					return;
+				}
+				else{*/
+					trace("restore vertical scroll");
+					var restoredVSP:Number = data.scrollPosition as Number;
+					trace("restoredVSP: ", restoredVSP);
+					feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.ON);
+					feedList.validateNow();
+					feedList.layout.verticalScrollPosition = restoredVSP;
+					data.retoredVSP = restoredVSP;
+					return;
+				/*}*/
+			}
+			private function layoutTabletLandscape():void
+			{
+				mainGroup.width = model.landscapeWidth - 262;
+				mainGroup.x = 0;
+				
+				//var tileLayout:TileLayout = new TileLayout();
+				//tileLayout.horizontalScrollPosition = this.scrollPosition.hsp;
+				/*tileLayout.orientation = "columns";
+				tileLayout.horizontalGap = 0;
+				tileLayout.verticalGap = 10;
+				tileLayout.horizontalAlign = "center";
+				tileLayout.useVirtualLayout = true;
+				tileLayout.clipAndEnableScrolling = true;*/
+				tileLayout.verticalScrollPosition = this.scrollPosition.vsp;
+				var reqColumns:int = 2;
+				if((model.landscapeWidth - model.menu.width) > (292 * 3))
+					reqColumns = 3;
+				tileLayout.requestedColumnCount = reqColumns;
+				tileLayout.columnWidth = ((model.landscapeWidth - model.menu.width) - tileLayout.horizontalGap) / reqColumns;
+				//tileLayout.rowHeight = 180;
+				
+				feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.OFF);
+				feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.ON);
+				feedList.percentWidth = 100;
+				//feedList.scrollSnappingMode = ScrollSnappingMode.LEADING_EDGE;
+				//feedList.pageScrollingEnabled = true;
+				//feedList.percentHeight = 100;
+				feedList.height = feedList.y + (stage.stageHeight - feedList.y);
+				trace("listhheight: ", feedList.height);
+				feedList.layout = tileLayout;
+				feedList.x = 0;
+				
+				
+				//tileLayout.paddingLeft = tileLayout.paddingRight = ((model.landscapeWidth - 262) - feedList.width - tileLayout.horizontalGap) / 2;
+				//feedList.y = (stage.stageHeight - feedList.height) / 2 - 40;
+				trace(feedList.height);
+				feedList.useVirtualLayout = true;
+				
+				spacer.height = 0;
+				//feedList.scrollSnappingMode = "leadingEdge";
+				//this.backgroundImg.source = LayoutImages.PatternBackgroundLg;
+				//backgroundImg.rotation = 90;
+				//backgroundImg.scaleMode = "zoom";
+				//backgroundImg.width = model.landscapeWidth - 262;
+				
+				//menu.init();
+				//create a layout for tablet for the main view
+				this.baseLayout = new VerticalLayout;
+				baseLayout.gap = 0;
+				baseLayout.horizontalAlign = "left";
+				this.layout = baseLayout;
+				
+				
+				return;
+			}
+			private function layoutTabletPortrait():void
+			{
+				mainGroup.width = model.portraitWidth - model.menu.width;
+				mainGroup.x  = 0;
+				this.baseLayout = new VerticalLayout();
+				baseLayout.gap = 0;
+				baseLayout.horizontalAlign = "center";
+				this.layout = baseLayout;
+				spacer.height = 0;
+				
+				var v2:VerticalLayout = new VerticalLayout();
+				v2.gap = 12;
+				v2.useVirtualLayout = true;
+				v2.verticalScrollPosition = this.scrollPosition.vsp;
+				
+				feedList.layout = baseLayout;
+				feedList.scrollSnappingMode = "leadingEdge";
+				feedList.dataGroup.layout = v2;
+				feedList.horizontalCenter = 0;
+				feedList.width = 292;
+				//feedList.scrollSnappingMode = ScrollSnappingMode.NONE;
+				//feedList.top += 10;
+				feedList.useVirtualLayout = true;
+				feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.OFF);
+				feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.ON);
+				feedList.height = feedList.y + (stage.stageHeight - feedList.y);
+				
+				/*this.backgroundImg.source = LayoutImages.PatternBackgroundLg;
+				backgroundImg.scaleMode = "zoom";
+				backgroundImg.width = model.portraitWidth - 262;
+				backgroundImg.rotation = 0;
+				backgroundImg.x = 0;*/
+				
+				
+				return;
+			}
+			private function layoutPhone():void
+			{
+				this.layout = this.baseLayout;
+				
+				var vl:VerticalLayout = new VerticalLayout();
+				vl.verticalScrollPosition = this.scrollPosition.vsp;
+				vl.gap = 8;
+				spacer.height = 0;
+				feedList.layout = vl;
+				feedList.width = 292;
+				feedList.horizontalCenter = 0;
+				feedList.useVirtualLayout = true;
+				feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.OFF);
+				feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.ON);
+				var kbsz:Number = (stage.stageHeight / Capabilities.screenDPI) * FlexGlobals.topLevelApplication.applicationDPI;
+				feedList.height = feedList.y + (kbsz - feedList.y);
+				
+				trace("feedListHeight: ", feedList.height);
+				
+				/*spacer.height = 16;
+				this.backgroundImg.source = LayoutImages.PatternBackground;
+				
+				backgroundImg.scaleMode = "zoom";
+				backgroundImg.percentWidth = 100;
+				menu.init();*/
+				return;
+			}
+			
+			private function notBusy(e:FlexEvent):void
+			{
+				trace("list height: ", feedList.height);
+				trace("list vsp: ", feedList.scroller.getStyle("verticalScrollPolicy"));
+				trace("list vsp: ", feedList.scroller.getStyle("horizontalScrollPolicy"));
+				if(busy)
+					hideBusy();
+					//busy.visible = false;
+						
+				feedList.removeEventListener(FlexEvent.UPDATE_COMPLETE, notBusy);
+				trace("list updated");
+				trace("scrollPostition: ", feedList.layout.verticalScrollPosition);
+				
+				trace("mainGroupWidth: ", mainGroup.width);	
+				trace("mainGroupx: ", mainGroup.x);	
+				var maxVSP:Number = feedList.dataGroup.contentHeight - feedList.dataGroup.height;
+				var maxHSP:Number = feedList.dataGroup.contentWidth - feedList.dataGroup.width;
+				
+				/*if(model.deviceType == "tablet" && stage.stageWidth > stage.stageHeight) {
+					feedList.layout.horizontalScrollPosition = Math.min(maxHSP, this.scrollPosition.hsp);
+					
+				}*/
+				if(model.deviceType == "tablet"){
+					feedList.layout.verticalScrollPosition = Math.min(maxVSP, this.scrollPosition.vsp);
+					
+				}
+				else {
+					feedList.layout.verticalScrollPosition = Math.min(maxVSP, this.scrollPosition.vsp);
+				}
+				
+				trace("mainGroupWidth: ", mainGroup.width);		
+
+				
+					
+					
+			}
+			
+			private function scroll(event:CollectionEvent):void
+			{
+				// TODO Auto Generated method stub
+				if(data == null)
+					return
+				
+				if(data.scrollPostion) {
+					trace("ScrollPosition:", data.scrollPostion);
+				}
+			}
+			
+			private function hideBusy():void
+			{
+				if(shakeBusy.isPlaying)
+					shakeBusy.stop();
+				TweenLite.to(busy, .36, {alpha: 0, onComplete: function(){
+					busy.visible = false;
+					includeInLayout = false;
+					if(stage) {
+					stage.frameRate = 24;
+						trace("frameRateDecreased: ", stage.frameRate);
+						if(model.deviceType == "phone")
+							stage.quality = "low";
+					}
+				}});
+			}
+			
+			private function showBusy():void
+			{
+				/*busy.x = (this.width / 2) - (this.);
+				busy.verticalCenter = 0;*/
+				if(stage) {
+				stage.frameRate = 45;
+				trace("frameRateIncreased: ", stage.frameRate);
+				stage.quality = "medium";
+				}
+				busy.visible = true;
+				TweenLite.to(busy, .36, {alpha: 1});
+			}
+			
+			protected function resetList(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				TweenLite.to(feedList.layout, .5, {verticalScrollPosition: 0, horizontalScrollPosition: 0, ease:Back.easeOut});
+			}
+			
+			private var menuOpen:Boolean = false;
+			protected function onKey(e:KeyboardEvent):void
+			{
+				if(e.keyCode == Keyboard.BACK)
+				{
+					e.preventDefault();
+					presenter.toggleMenu(new ToggleMenuEvent(true));
+					
+				}
+			}
+			
+			
+			
+			protected function feedList_touchInteractionStartHandler(event:TouchInteractionEvent):void
+			{
+				// TODO Auto-generated method stub
+				stage.frameRate = 45;
+				
+			}
+			
+			protected function feedList_touchInteractionEndHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				stage.frameRate = 24;
+				trace("listTOuchEndVSP: ", feedList.layout.verticalScrollPosition);
+				trace("dataGroupHeight: ", feedList.dataProvider.length * (baseLayout.gap + 150) - baseLayout.gap);
+				if(feedList.layout.verticalScrollPosition < -60) {
+					this.currentState = "loading";
+					new LoadActivityEvent().dispatch();
+				}
+			}
+			private var arrowRotating:Boolean = false;
+			protected function scrollChange(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				trace("scroll change");
+				var vScroll:Number = feedList.layout.verticalScrollPosition;
+				if(vScroll < 0){
+					trace(vScroll);
+					
+					if(!loadingGroup.visible){
+						loadingGroup.visible = true;
+					}
+					if(vScroll < -24){
+						this.loadingContentGroup.visible = true;
+					}
+					else {
+						this.loadingContentGroup.visible = false;
+					}
+					loadingGroup.height = Math.abs(vScroll);
+					
+					if(vScroll < -60){
+						this.loadText.text = "Release to refresh..."
+						if(!arrowRotating) {
+							arrowRotating = true;
+							TweenLite.to(this.loadArrow, .2, {rotation: 180, onComplete: function(){
+								arrowRotating = false;
+							}});
+						}
+
+					}
+					else{
+						this.loadText.text = "Pull Down to refresh..."
+						if(!arrowRotating) {
+							TweenLite.to(this.loadArrow, .2, {rotation: 0, onComplete: function(){
+								arrowRotating = false;
+							}});
+						}
+						
+					}
+					
+				}else{
+					loadingGroup.visible = false;
+				}
+			}
+			
+			protected function dataProviderSet(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				trace("data provider set");
+			}
+			
+			
+			protected function setLoading(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				updateState("loading");
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:Sequence id="shakeBusy" repeatCount="0" effectStart="" effectStop="hideBusy()">
+			<s:Resize target="{busy}" widthTo="72" heightTo="72" duration="200"/>
+			<s:Resize target="{busy}" widthTo="64" heightTo="64" duration="200"/>
+		</s:Sequence>
+		<s:TileLayout id="tileLayout" clipAndEnableScrolling="true" orientation="rows" horizontalGap="0" verticalGap="10" horizontalAlign="center" useVirtualLayout="true"/>
+		</fx:Declarations>
+	<s:states>
+		<s:State name="empty" />
+		<s:State name="loading" enterState="showBusy();shakeBusy.play()" exitState="shakeBusy.stop()" />
+		<s:State name="ready" enterState="shakeBusy.stop()" />
+		<s:State name="readyTablet" enterState="shakeBusy.stop()" />
+		<s:State name="readyTabletPortrait" enterState="shakeBusy.stop()" />
+	</s:states>
+	<s:layout>
+		<s:VerticalLayout id="baseLayout" horizontalAlign="center" gap="0"/>
+	</s:layout>
+	<components:MenuActionBar id="menu" height="55" toggleMenu="presenter.toggleMenu(event)" toggleSendPoints="presenter.toggleSendPoints(event)" title="Activity View"  />
+	<s:Spacer id="spacer" height="0" width="320"/>
+	<s:Group id="mainGroup" height="100%">
+		<s:Group id="loadingGroup" height="0" horizontalCenter="0" width="{feedList.width}">
+			<s:Rect width="100%" height="100%">
+				<s:fill>
+					<s:SolidColor color="0xf1f1f1" />
+				</s:fill>
+				<s:stroke>
+					<s:SolidColorStroke color="0x666666" />
+				</s:stroke>
+			</s:Rect>
+			<s:HGroup id="loadingContentGroup" gap="10" bottom="4" horizontalCenter="0" verticalAlign="bottom" horizontalAlign="center" visible="false">
+				<s:BitmapImage id="loadArrow" source="{LayoutImages.LoadingArrow}" width="24" height="24" scaleMode="letterbox"/>
+				<s:Label id="loadText" text="Pull Down to refresh..." color="0x666666" fontWeight="bold" fontSize="10" paddingBottom="4"/>
+			</s:HGroup>
+		</s:Group>
+		<!--<s:BitmapImage id="backgroundImg" source="{LayoutImages.PatternBackground}" scaleMode="stretch" rotation.readyTablet="90" rotation.readyTabletPortrait="0"/>-->
+		<s:List id="feedList" itemRenderer="it.youearned.renderers.Optimized" includeInLayout="true" skinClass="it.youearned.skins.ScrollerlessListSkin"
+				change="selectItem(event)" contentBackgroundAlpha="0" creationComplete="listActivate()" updateComplete="notBusy(event)" verticalScrollPolicy="on" 
+				 touchInteractionStart="feedList_touchInteractionStartHandler(event)" mouseUp="feedList_touchInteractionEndHandler(event)"/>
+		<!--<s:BusyIndicator id="busy" verticalCenter="-55" horizontalCenter="0" symbolColor="0xd31c2c" width="64" height="64" includeInLayout="true" />-->
+		<s:BitmapImage id="busy" source="{LayoutImages.LoadingIcon}" width="64" height="64" verticalCenter="-55" horizontalCenter="0" smooth="true" visible.loading="true" visible="false" />
+	</s:Group>
+	<!--<s:BitmapImage id="busy" source="{LayoutImages.Loading}" width="320" height="36" includeInLayout="true"/>-->
+	
+	
+</s:View>

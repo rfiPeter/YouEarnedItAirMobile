@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:components="it.youearned.components.*" render="view1_renderHandler(event)"
+		xmlns:s="library://ns.adobe.com/flex/spark" title="UserProfileView" actionBarVisible="false" viewActivate="view1_viewActivateHandler(event)" viewDeactivate="view1_viewDeactivateHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.greensock.TweenLite;
+			import com.greensock.easing.Back;
+			
+			import spark.events.IndexChangeEvent;
+			import spark.events.ViewNavigatorEvent;
+			import spark.layouts.TileLayout;
+			import spark.layouts.VerticalLayout;
+			import spark.transitions.SlideViewTransition;
+			import spark.transitions.ViewTransitionDirection;
+			
+			import flashx.textLayout.container.ScrollPolicy;
+			
+			import it.youearned.events.ToggleMenuEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.presenters.UserProfilePresenter;
+			import it.youearned.renderers.ActivityItemRenderer;
+			import it.youearned.skins.ScrollerlessListSkin;
+			import it.youearned.utils.AssetUtil; 
+			
+			[Bindable]private var model:AppModel = AppModel.getInstance();
+			[Bindable]private var presenter:UserProfilePresenter = model.getPresenter(UserProfilePresenter) as UserProfilePresenter;
+			
+			private var _scrollPosition:Object;
+			
+			[Bindable]
+			public function get scrollPosition():Object
+			{
+				if(_scrollPosition) {
+					return _scrollPosition;
+				}
+				_scrollPosition = new Object();
+				_scrollPosition.hsp = "0";
+				_scrollPosition.vsp = "0";
+				return _scrollPosition;
+			}
+			
+			public function setScrollPosition(x:String,y:String):void
+			{
+				_scrollPosition.hsp = x.toString();
+				_scrollPosition.vsp = y.toString();
+			}
+			
+			private const f:Array = [AssetUtil.getDropshadow({angle:135,alpha:.25})];
+			
+			override public function set data(value:Object):void
+			{
+				trace("activityViewData: ", JSON.stringify(super.data));
+				if(value == null) {
+					value = new Object();
+					value.scrollPosition = 0;
+				}
+				
+				
+				super.data = value;
+				
+				trace("activity view data set");
+				//trace("activityViewData: ", JSON.stringify(value));
+			}
+			
+			protected function filterActivity(event:IndexChangeEvent):void
+			{
+				trace("filterActivity: ", event.newIndex);
+				switch (event.newIndex)
+				{
+					case 0:
+						currentState = "showAll";
+						break;
+					case 1:
+						currentState = "showReceived";
+						break;
+					case 2:
+						currentState = "showSent";
+						break;
+				}
+				presenter.updateView(event.newIndex);
+			}
+			protected function view1_renderHandler(event:Event):void
+			{
+				if (model.deviceType == "tablet") {
+					menu.width = stage.stageWidth - 262;
+					menu.menuButton.visible = false;
+				}
+				else {
+					menu.percentWidth = 100;
+					this.addEventListener(TransformGestureEvent.GESTURE_SWIPE, swipeNavigate);
+				}
+			}
+			protected function view1_viewActivateHandler(event:ViewNavigatorEvent):void
+			{
+				bb.visible = false;
+				// TODO Auto-generated method stub
+				presenter.toggleMenu(new ToggleMenuEvent(false));
+				TweenLite.delayedCall(.6, buttonBarReady);
+				presenter.init(feedList);
+				
+				if(data) {
+					if(data.scrollPosition) {
+						setScrollPosition(data.scrollPosition.hsp, data.scrollPosition.vsp)
+						//this.scrollPosition = data.scrollPosition;
+					}
+					trace("activityViewDataRevived: ", JSON.stringify(data));
+				}
+				menu.actionLabel.addEventListener(MouseEvent.CLICK, resetList);
+				this.stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGE, orient);
+				this.stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGING, orienting);
+			}
+			private function swipeNavigate(swipe:TransformGestureEvent):void
+			{
+				// TODO Auto Generated method stub
+				if (swipe.offsetX == 1 ) {
+					presenter.toggleMenu(new ToggleMenuEvent(true));
+				}
+				else if (swipe.offsetX == -1 ) {
+					presenter.toggleMenu(new ToggleMenuEvent(false));
+				}
+			}
+			private function listActivate():void
+			{
+
+				trace("list ready");
+					if(model.deviceType == "tablet" && stage.stageWidth >= stage.stageHeight) {
+						trace("tablet landsacpe");
+						layoutTabletLandscape();
+					}
+					else if (model.deviceType == "tablet" && stage.stageWidth < stage.stageHeight) {
+						trace("tablet portrait");
+						layoutTabletPortrait();
+					}
+					else {
+						layoutPhone();
+					}
+				
+				//feedList.top = menu.height + bb.height + 1;
+				feedList.visible = true;
+				busy.visible = false;
+			}
+			private function layoutTabletLandscape():void
+			{
+				var tileLayout:TileLayout = new TileLayout();
+				//tileLayout.horizontalScrollPosition = this.scrollPosition.hsp;
+				tileLayout.orientation = "columns";
+				tileLayout.requestedRowCount = 2;
+				tileLayout.columnWidth = 292;
+				tileLayout.rowHeight = 250;
+				tileLayout.horizontalGap = 45;
+				tileLayout.verticalGap = 60;
+				tileLayout.useVirtualLayout = true;
+				tileLayout.clipAndEnableScrolling = true;
+				
+				feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.ON);
+				feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.OFF);
+				feedList.percentWidth = 100;
+				feedList.height = 545;
+				feedList.layout = tileLayout;
+				feedList.x = 0;
+				feedList.horizontalCenter = null;
+				feedList.y = (stage.stageHeight - feedList.height) / 2 - 40;
+				trace(feedList.height);
+				//feedList.horizontalCenter = 0;
+				feedList.useVirtualLayout = true;
+				bb.width = 300;
+				bb.left = null;
+				bb.right = 0;
+				return;
+			}
+			private function layoutTabletPortrait():void
+			{
+				var vl:VerticalLayout = new VerticalLayout();
+				vl.gap = 12;
+				//vl.verticalScrollPosition = this.scrollPosition.vsp;
+				feedList.layout = vl;
+				feedList.verticalCenter = null;
+				feedList.horizontalCenter = 0;
+				feedList.width = 292;
+				feedList.y = menu.height + 100;
+				feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.OFF);
+				feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.ON);
+				feedList.height = stage.stageHeight - 155;
+				feedList.useVirtualLayout = true;
+				bb.width = 300;
+				bb.left = null;
+				bb.right = 0;
+				return;
+			}
+			private function layoutPhone():void
+			{
+				var vl:VerticalLayout = new VerticalLayout();
+				//vl.verticalScrollPosition = this.scrollPosition.vsp;
+				vl.gap = 8;
+				feedList.layout = vl;
+				feedList.width = 292;
+				feedList.top = menu.height + bb.height + 1;
+				feedList.left = 14;
+				feedList.scroller.setStyle("horizontalScrollPolicy", ScrollPolicy.OFF);
+				feedList.scroller.setStyle("verticalScrollPolicy", ScrollPolicy.ON);
+				feedList.percentHeight = 100;
+				feedList.useVirtualLayout = true;
+				bb.width = 320;
+				bb.x=0;
+				return;
+			}
+			private function orienting(event:StageOrientationEvent):void
+			{
+				
+				this.actionBarVisible = false;
+				this.tabBarVisible = false;
+			}
+			
+			private function orient(event:StageOrientationEvent):void
+			{
+				if(event.target) {
+					if (this.stage.stageWidth < this.stage.stageHeight) {
+						layoutTabletPortrait();
+						menu.init();
+						return;
+					}
+					else {
+						layoutTabletLandscape();
+						menu.init();
+						return;
+					}
+				}
+			}
+			protected function view1_viewDeactivateHandler(event:ViewNavigatorEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+				this.stage.removeEventListener(StageOrientationEvent.ORIENTATION_CHANGE, orient);
+				this.stage.removeEventListener(StageOrientationEvent.ORIENTATION_CHANGING, orienting);
+			}
+			protected function selectItem(event:IndexChangeEvent):void
+			{
+				// TODO Auto-generated method stub
+				var slideTrans:SlideViewTransition = new SlideViewTransition();
+				slideTrans.direction = ViewTransitionDirection.RIGHT;
+				model.mainNavigator.pushView(views.SingleActivity, feedList.dataProvider.getItemAt(event.newIndex));
+				
+				this.setScrollPosition(feedList.layout.horizontalScrollPosition.toString(),feedList.layout.verticalScrollPosition.toString());
+			}
+			
+			private function buttonBarReady():void
+			{
+				// TODO Auto Generated method stub
+				trace("buttonReady");
+				bb.visible = true;
+				TweenLite.from(bb, .3, {alpha: 0, y: bb.y - bb.height});
+			}
+			
+			protected function resetList(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				TweenLite.to(feedList.layout, .5, {verticalScrollPosition: 0, horizontalScrollPosition: 0, ease:Back.easeOut});
+			}
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="showAll" />
+		<s:State name="showSent" />
+		<s:State name="showReceived" />
+	</s:states>
+	
+	<!--<s:Rect width="{model.width}" height="{model.height}">
+		<s:fill>
+			<s:SolidColor color="0x292929" />
+		</s:fill>
+	</s:Rect>
+	<s:BitmapImage source="@Embed('assets/images/DarkBackground.png')" scaleMode="letterbox" width="100%" smooth="true" />-->
+	
+	<!--
+	<s:HGroup id="imgGroup" top="{menu.height+10}" width="100%" height="82" paddingLeft="10" verticalAlign="middle">
+	<s:Image source="assets/images/JaneDoe.jpg" width="62" height="62" />
+	</s:HGroup>
+	-->
+	<s:Image source="{LayoutImages.PatternBackground}" width="100%" top="-20" bottom="0" scaleMode="stretch"/>
+	<s:List id="feedList" skinClass="it.youearned.skins.ScrollerlessListSkin" itemRenderer="it.youearned.renderers.ActivityItemRenderer" creationComplete="listActivate()" contentBackgroundAlpha="0" scrollSnappingMode="leadingEdge" change="selectItem(event)" />
+	<s:ButtonBar top="{menu.height}" change="filterActivity(event)" requireSelection="true" selectedIndex="0" id="bb" visible="false" cacheAsBitmap="false" skinClass="it.youearned.skins.YEIButtonBarSkin">
+		<s:dataProvider>
+			<s:ArrayList>
+				<fx:Object label="All" />
+				<fx:Object label="Received" />
+				<fx:Object label="Sent" />
+			</s:ArrayList>
+		</s:dataProvider>
+	</s:ButtonBar>
+
+	<s:BusyIndicator id="busy" verticalCenter="0" horizontalCenter="0" />
+	<components:MenuActionBar id="menu" height="55" toggleMenu="presenter.toggleMenu(event)" toggleSendPoints="presenter.toggleSendPoints(event)" title="{model.me.first_name} {model.me.last_name}"  />
+	
+</s:View>

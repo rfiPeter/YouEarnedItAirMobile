@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 width="{model.width}" height="{model.height}" creationComplete="init(event)" render="onRender(event)">
+		
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.protocols.oauth2.OAuth2;
+			import com.adobe.protocols.oauth2.event.GetAccessTokenEvent;
+			import com.adobe.protocols.oauth2.grant.AuthorizationCodeGrant;
+			import com.adobe.protocols.oauth2.grant.IGrantType;
+			import com.adobe.protocols.oauth2.utils.URLParser;
+			
+			import it.youearned.commands.UpdateViewCommand;
+			import it.youearned.events.LoginEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.presenters.LoginPresenter;
+			
+			import mx.events.FlexEvent;
+			
+			import org.as3commons.logging.setup.LogSetupLevel;
+			[Bindable]private var model:AppModel = AppModel.getInstance();
+			private var presenter:LoginPresenter = model.getPresenter(LoginPresenter) as LoginPresenter;
+			
+			public var data:Object;
+			
+			private var stageWebView:StageWebView;
+			
+			private var inited:Boolean = false;
+			
+			protected function init(event:FlexEvent):void
+			{
+				if (!stageWebView)
+					stageWebView = new StageWebView;
+				//model.menu.width = 0;
+				//model.menu.includeInLayout = false;
+				test();
+												
+			}
+			
+			private var oauth2:OAuth2;							
+			private var grant:IGrantType;
+			
+			public function test():void
+			{	
+				if (!inited) {
+					stageWebView.stage = stage;
+					inited = true;
+				}
+				
+				oauth2= new OAuth2("https://login.youearnedit.com/oauth/authorize","https://login.youearnedit.com/oauth/token",LogSetupLevel.ALL);
+				grant = new AuthorizationCodeGrant(stageWebView,"35E69C84-63D9-4578-A2F8-190F175975C5","DDF42D43-5AF3-485A-8547-1127C89F666B","https://login.youearnedit.com","API");
+				
+				oauth2.addEventListener(GetAccessTokenEvent.TYPE, onGetAccessToken);
+				oauth2.getAccessToken(grant);
+			}
+		
+			
+			protected function onGetAccessToken(event:GetAccessTokenEvent):void
+			{				
+				if (event.errorCode == null && event.errorMessage == null) {
+					trace('onGetAccessToken');
+					stageWebView.dispose();
+					model.authToken = event.accessToken;
+					new LoginEvent().dispatch();
+				}
+				else {
+					trace(event.errorCode, event.errorMessage);
+					stageWebView.dispose();
+					test();
+				}
+			}
+			
+			
+			
+			protected function onRender(event:Event):void
+			{
+				var r:Rectangle = this.getBounds(stage);
+				if (r.width > 0 && r.height > 0) {
+					if (!stageWebView)
+						stageWebView = new StageWebView;
+					try {
+						stageWebView.viewPort = r;
+					}
+					catch (e:Error) {
+					}
+				}				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:Scroller width="100%" height="100%" verticalScrollPolicy="off" horizontalScrollPolicy="off">
+		<s:Group width="100%">
+			<s:BitmapImage width="100%" fillMode="scale" scaleMode="letterbox" smooth="true"
+				   source="{LayoutImages.Background}"/>
+		</s:Group>		
+	</s:Scroller>
+</s:Group>

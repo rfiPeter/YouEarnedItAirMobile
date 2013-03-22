@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- http://blog.flexexamples.com/2010/10/25/setting-a-custom-broken-image-icon-for-the-spark-image-control-in-flex-hero/ -->
+<s:Skin name="CustomImageSkin"
+		xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		xmlns:fb="http://ns.adobe.com/flashbuilder/2009"
+		alpha.disabled="0.5">
+	<!-- states -->
+	<s:states>
+		<s:State name="uninitialized" />
+		<s:State name="loading"/>
+		<s:State name="ready" />
+		<s:State name="invalid" />
+		<s:State name="disabled" />
+	</s:states>
+	
+	<!-- host component -->
+	<fx:Metadata>
+		[HostComponent("spark.components.Image")]
+	</fx:Metadata>
+	
+	<fx:Script fb:purpose="styling">
+		<![CDATA[
+			import spark.core.MaskType;
+			
+			import it.youearned.utils.AssetUtil;
+			override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
+				// Push backgroundColor and backgroundAlpha directly.
+				// Handle undefined backgroundColor by hiding the background object.
+				if (isNaN(getStyle("backgroundColor"))) {
+					background.visible = false;
+					background.includeInLayout = false;
+				} else {
+					background.visible = true;
+					background.includeInLayout = true;
+					bgFill.color = getStyle("backgroundColor");
+					bgFill.alpha = getStyle("backgroundAlpha");
+				}
+				
+				
+				
+				super.updateDisplayList(unscaledWidth, unscaledHeight);
+			}
+			private var circleSprite:Sprite;
+			protected function maskImage():void
+			{
+				// TODO Auto-generated method stub
+				imageDisplay.mask=it.youearned.utils.AssetUtil.getCircle(this.width/2, this.height/2, this.height/2);
+				imageDisplay.maskType=MaskType.ALPHA;
+			}
+			
+			protected function imageDisplay_completeHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				maskImage();
+			}
+			
+		]]>        
+	</fx:Script>
+	
+	<!-- Defines the appearance of the image background. -->
+
+	<s:Rect id="background" left="0" right="0" top="0" bottom="0">
+		<s:fill>
+			<s:SolidColor id="bgFill" color="0xdedede"/>
+		</s:fill>
+	</s:Rect>
+	
+	<!-- Primary image display part -->
+	<s:BitmapImage id="imageDisplay" left="0" top="0" right="0" bottom="0" complete="imageDisplay_completeHandler(event)"/>
+	
+	<!-- Progress indicator part -->
+	<s:Range id="progressIndicator" skinClass="spark.skins.spark.ImageLoadingSkin" verticalCenter="0" horizontalCenter="0" includeIn="loading" layoutDirection="ltr" />
+	
+	<!-- Invalid image icon -->
+	<s:BitmapImage includeIn="invalid" source="{LayoutImages.DefaultProfileIcon}" verticalCenter="0" horizontalCenter="0"/>
+	
+	<s:Rect includeIn="invalid" left="0" right="0" top="0" bottom="0">
+		<s:stroke>
+			<s:SolidColorStroke weight="0" color="#000000" />
+		</s:stroke>
+	</s:Rect>
+	
+</s:Skin>

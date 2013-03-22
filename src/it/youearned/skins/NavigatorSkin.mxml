@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Skin xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark">
+	<!-- host component -->
+	<fx:Metadata>
+		[HostComponent("spark.components.ViewNavigator")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+		]]>
+	</fx:Script>
+	<!-- states -->
+	<s:states>
+		<s:State name="portrait" />
+		<s:State name="landscape" />
+		<s:State name="landscapeAndOverlay" />
+		<s:State name="portraitAndOverlay" />
+		<s:State name="disabled" />
+		<s:State name="normal" />
+	</s:states>
+	
+	<!-- SkinParts
+	name=contentGroup, type=spark.components.Group, required=false
+	name=actionBar, type=spark.components.ActionBar, required=false
+	-->
+	<s:ActionBar id="actionBar" top="0" left="0" height="55" visible="false"/>
+	<s:Image id="backgroundImage" smooth="true" 
+			 scaleMode="zoom" right="0" bottom="0" left="0" top="-20" source="{LayoutImages.PatternBackground}" includeIn="normal, portrait, portraitAndOverlay"/>
+	<s:Image id="backgroundImageLS" smooth="true" 
+			 scaleMode="zoom" right="0" bottom="0" left="0" top="0" source="{LayoutImages.PatternBackgroundLg}" rotation="90" includeIn="landscape, landscapeAndOverlay"/>
+	<s:Group id="contentGroup" right="0" bottom="0" left="0" top="0" includeInLayout.disabled="false" contentBackgroundAlpha="0"/>
+	
+</s:Skin>

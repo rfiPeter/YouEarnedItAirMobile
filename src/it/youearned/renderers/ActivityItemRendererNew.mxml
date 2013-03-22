@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" width="100%" cacheAsBitmap="true" cachePolicy="on" creationComplete="init(event)" click="onSelect(event)">
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import spark.core.ContentCache;
+			
+			import it.youearned.api.services.valueObjects.Activity;
+			import it.youearned.api.services.valueObjects.ActivitySet;
+			import it.youearned.events.DisplayActivityItemEvent;
+			import it.youearned.model.AppModel;
+			import it.youearned.model.ImageCache;
+			import it.youearned.utils.AssetUtil;
+			import it.youearned.utils.DateDifferenceUtil;
+			
+			private var model:AppModel = AppModel.getInstance();
+			
+			override public function set data(value:Object):void
+			{
+				_data = value;
+				
+				if (!loaded)
+					return;
+				draw();
+				
+			}
+			
+			private function draw():void
+			{
+				// I'm just building this with the expectation the object passed in IS an ActivitySet object which I am pulling the Activity object from.
+				
+				if (_data is ActivitySet) {
+					activity = (data as ActivitySet).activity;
+					
+					privacyColor = (activity.is_private) ? PRIVATE : PUBLIC;
+					
+//					publicPrivacyIcon.visible = publicPrivacyIcon.includeInLayout = ((activity.is_private) ? false : true);
+					cornerBg.visible = cornerBg.includeInLayout = ((activity.is_private) ? true : false);
+					privatePrivacyIcon.visible = privatePrivacyIcon.includeInLayout = ((activity.is_private) ? true : false);
+					
+					// for the timestamp
+					trace("settingDate1: ", activity.date)
+					var d:Date = new Date(activity.date);
+					trace("settingDate:2 ", d.toString())
+					timestamp = DateDifferenceUtil.difference(new Date, d);
+					
+					if ( !recipientImage.contentLoader ) {
+						recipientImage.contentLoader = model.imageCache.Cache;
+					}
+					//set the image source
+					recipientImage.source = activity.recipient.picture + "/small";
+					
+					if ( !senderImage.contentLoader ) {
+						senderImage.contentLoader = model.imageCache.Cache;
+					}
+					//set the image source
+					senderImage.source = activity.sender.picture + "/small";
+					
+					senderName.text = activity.sender.first_name + " " + activity.sender.last_name;
+					recipientName.text = activity.recipient.first_name + " " + activity.recipient.last_name;
+					
+					// for comments
+					if (activity.comments.length == 0) {
+						commentsLength = "Comment";
+						commentIcon.visible = false;
+					}
+					else {
+						commentsLength = activity.comments.length.toString();
+						commentIcon.visible = true;
+					}
+					
+					// for "tags"
+					if (activity.category == null) {
+						// hide category tag...
+						categoryIcon.visible = categoryText.visible = false;
+					}
+					else {
+						categoryIcon.visible = categoryText.visible = true;
+						category = activity.category;
+					}
+					
+					if (model.me != null) {
+						if (activity.sender.id == model.me.id || activity.recipient.id == model.me.id) {
+							greenStarImg.visible = greenStarImg.includeInLayout = true;
+							pointsGivenLbl.visible = pointsGivenLbl.includeInLayout = true;
+							pointsGivenLbl.text = activity.points.toString();
+						}
+						else {
+							greenStarImg.visible = greenStarImg.includeInLayout = false;
+							pointsGivenLbl.visible = pointsGivenLbl.includeInLayout = false;
+						}
+					}
+					else {
+						greenStarImg.visible = greenStarImg.includeInLayout = false;
+						pointsGivenLbl.visible = pointsGivenLbl.includeInLayout = false;
+					}
+					
+				}
+				else {
+					// do something to hide the view...
+					trace('! an activity object');
+				}
+			}
+			
+			private var loaded:Boolean = false;
+			
+			private const PRIVATE:uint = 0x919597;
+			private const PUBLIC:uint = 0xf1f1f1;
+			
+			[Bindable]private var commentsLength:String = "";
+			
+			[Bindable]private var category:String = "";
+			
+			[Bindable]private var timestamp:String = "";
+			
+			[Bindable]private var privacyColor:uint = PUBLIC;
+			
+			[Bindable]private var activity:Activity;
+			
+			protected function viewComments(event:MouseEvent):void
+			{
+			}
+			
+			protected function init(event:FlexEvent):void
+			{
+				loaded = true;
+				if (_data) {
+					draw();
+				}
+			}
+			
+			protected function onSelect(event:MouseEvent):void
+			{
+				new DisplayActivityItemEvent(activity).dispatch();
+			}
+			
+		]]>
+	</fx:Script>
+
+	<s:Group left="10" right="10" top="10" bottom="10" filters="{[AssetUtil.getDropshadow({distance:4,angle:45,color:0x666666,alpha:.25})]}">
+		<s:Rect width="100%" height="100%">
+			<s:fill>
+				<s:SolidColor color="0xffffff"/>
+			</s:fill>
+		</s:Rect>
+		
+		<!-- header -->
+		
+		<!-- image piece -->
+		<s:BitmapImage left="10" top="10" width="41" height="41" smooth="true"
+					   source="{LayoutImages.DefaultProfileIcon}" />
+		<s:Image id="senderImage" left="10" top="10" width="41" height="41" smooth="true"/>
+		<s:BitmapImage y="51" left="12" width="12" height="10" smooth="true"
+				 source="{LayoutImages.FromToArrow}"/>
+		<s:BitmapImage y="30" left="27" width="31" height="31" smooth="true"
+					   source="@Embed('assets/images/default.png')" />
+		<s:Image y="30" left="27" width="31" height="31" id="recipientImage"/>
+		
+		<!-- name piece -->
+		<s:HGroup left="63" top="10" verticalAlign="middle">
+			<s:Label id="senderName" fontSize="11" text="{activity.sender.first_name} {activity.sender.last_name}" styleName="RedTextStyle"/>
+			<s:Path data="L 5 4 L 0 8 L 0 0 z">
+				<s:fill>
+					<s:SolidColor color="0x919597" />
+				</s:fill>
+			</s:Path>
+			<s:Label id="recipientName" fontSize="11" text="{activity.recipient.first_name} {activity.recipient.last_name}" styleName="RedTextStyle"/>
+		</s:HGroup>
+		
+		<!-- time piece -->
+		<s:HGroup left="63" top="30">
+			<s:BitmapImage width="11" height="12" source="{LayoutImages.GreenStar}" id="greenStarImg"/>
+			<s:Label text="{activity.points}" styleName="GreenTextStyle" fontSize="12" fontWeight="bold" id="pointsGivenLbl" />
+			<s:BitmapImage width="11" height="10" smooth="true"
+					 source="{LayoutImages.TimeIcon}"/>
+			<s:Label color="#919597" fontSize="10" text="{timestamp}"/><!-- left:77 top:30 -->
+		</s:HGroup>
+		
+		
+		<!-- privacy piece -->
+		<s:Path data="L 37 0 L 37 32 L 0 0 z" right="0" top="0" id="cornerBg">
+			<s:fill>
+				<s:SolidColor color="{privacyColor}" />
+			</s:fill>
+		</s:Path>
+		<s:BitmapImage id="publicPrivacyIcon" right="4" top="4" width="15" height="12"
+					   source="{LayoutImages.PublicPrivacyIcon}" visible="false" includeInLayout="false"/>
+		<s:BitmapImage id="privatePrivacyIcon" right="4" top="4" width="9" height="11" smooth="true"
+					   source="{LayoutImages.PrivatePrivacyIcon}"/>
+		
+		<!-- line -->		
+		<s:Rect y="55" left="63" right="25" height="3">
+			<s:fill>
+				<s:SolidColor color="0xdddddd" />
+			</s:fill>
+		</s:Rect>
+		
+		
+		<!-- content -->
+		<s:Label id="desc" y="72" left="10" right="10" text="{activity.description}" styleName="BrownTextStyle"/>
+		
+		
+		<!-- footer -->
+		<s:Group x="0" top="{desc.y+desc.height+4}" bottom="0" width="100%" height="30">
+			<s:Rect width="100%" height="100%">
+				<s:fill>
+					<s:SolidColor color="0xf1f1f1" />
+				</s:fill>
+			</s:Rect>
+			
+			<s:Image id="commentIcon" left="24" width="14" height="13" smooth="true" click="viewComments(event)"
+						   source="{LayoutImages.CommentIcon}" verticalCenter="1"/>
+			<s:Label left="4" fontSize="11" styleName="RedTextStyle" text="{commentsLength}" textAlign="left"
+					 verticalCenter="0" click="viewComments(event)"/>
+			
+			
+			<s:BitmapImage id="categoryIcon" right="4" width="13" height="9" smooth="true"
+						   source="{LayoutImages.TagsIcon}" verticalCenter="0"/>
+			<s:Label id="categoryText" right="22" fontSize="11" text="{category}" textAlign="right" verticalCenter="0" fontWeight="bold" styleName="DarkGrayTextStyle"/>
+			
+		</s:Group>
+		
+		
+	</s:Group>
+
+		
+	
+	
+
+</s:ItemRenderer>

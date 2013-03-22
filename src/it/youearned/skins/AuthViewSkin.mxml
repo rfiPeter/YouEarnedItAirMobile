@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Skin xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" xmlns:components="it.youearned.components.*" width="100%" height="100%">
+	<!-- host component -->
+	<fx:Metadata>
+		[HostComponent("spark.components.View")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.greensock.TweenLite;
+			import com.greensock.TweenMax;
+			
+			import it.youearned.events.SendPointsEvent;
+			import it.youearned.events.ToggleMenuEvent;
+			import it.youearned.events.ToggleSendPointsEvent;
+			import it.youearned.model.AppModel;
+			
+			import spark.components.View;
+			
+			[Bindable]private var aWidth:Number = 0;
+			[Bindable]private var aHeight:Number = 0;
+			[Bindable]private var title:String = "";
+			
+			override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void
+			{
+				super.updateDisplayList(unscaledWidth,unscaledHeight);
+				if (aWidth == 0) {
+					aWidth = unscaledWidth;
+					aHeight = unscaledHeight;
+					title = View(this.parent).title;
+					
+					
+				}
+			}
+			
+						
+			
+			private function toggleMenu(event:ToggleMenuEvent):void
+			{
+				if (event.open) {
+					var w:Number = width - menuBar.height - 10;
+					TweenMax.allTo([contentGroup,menuBar],.5,{x:w});
+				}
+				else {
+					TweenMax.allTo([contentGroup,menuBar],.5,{x:0});
+				}
+			}
+			
+			private function sendPoints(event:ToggleSendPointsEvent):void
+			{
+				new SendPointsEvent(SendPointsEvent.OPEN).dispatch();
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<!-- states -->
+	<s:states>
+		<s:State name="disabled" />
+		<s:State name="normal" />
+	</s:states>
+	
+	
+	
+	
+	<components:MenuComponent width="{aWidth}" id="menuLayer" />
+	
+	<s:Group id="contentGroup" name="contentGroup" width="{aWidth}" height="{aHeight - menuBar.height}" y="{menuBar.height}">
+		
+	</s:Group>
+	
+	<components:MenuActionBar id="menuBar" toggleMenu="toggleMenu(event)" toggleSendPoints="sendPoints(event)" title="{title}" width="{aWidth}" />
+		
+</s:Skin>

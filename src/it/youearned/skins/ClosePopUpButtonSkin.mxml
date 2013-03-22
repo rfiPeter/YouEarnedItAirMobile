@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Skin xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark">
+	<!-- host component -->
+	<fx:Metadata>
+		[HostComponent("spark.components.Button")]
+	</fx:Metadata>
+	
+	<!-- states -->
+	<s:states>
+		<s:State name="disabled" />
+		<s:State name="down" />
+		<s:State name="over" />
+		<s:State name="up" />
+	</s:states>
+	
+	
+	<s:BitmapImage source="@Embed(source='assets/images/ClosePopUpButtonSkin.png')" scaleMode="stretch" smooth="true" width="100%" height="100%" includeIn="up,disabled" /> 
+	<s:BitmapImage source="@Embed(source='assets/images/ClosePopUpButtonSkin.png')" scaleMode="stretch" smooth="true" width="100%" height="100%" includeIn="over,down" />
+	
+	
+	
+</s:Skin>

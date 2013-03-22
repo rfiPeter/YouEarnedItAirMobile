@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" title="PointsSent" actionBarVisible="false">
+	<fx:Script>
+		<![CDATA[
+			
+			import spark.transitions.CrossFadeViewTransition;
+			import spark.transitions.ZoomViewTransition;
+			import spark.transitions.ZoomViewTransitionMode;
+			
+			import it.youearned.model.AppModel;
+			import it.youearned.skins.ClosePopUpButtonSkin;
+			[Bindable]private var model:AppModel = AppModel.getInstance();
+			
+			protected function onClose(event:MouseEvent):void
+			{
+				var fadeTrans:CrossFadeViewTransition = new CrossFadeViewTransition();
+				model.mainNavigator.popView(fadeTrans);
+				model.mainNavigator.pushView(views.ActivityMain, null, null, fadeTrans);
+				//new UpdateViewEvent(UpdateViewEvent.POP_VIEW).dispatch();
+			}
+			
+			override public function set data (value:Object):void
+			{
+				super.data = value;
+				sH = 420 * (model.width/693);
+			}
+			
+			[Bindable]
+			private var sH:Number = 420;
+			
+			protected function sendMore(event:MouseEvent):void
+			{
+				var zoomTrans:ZoomViewTransition = new ZoomViewTransition();
+				zoomTrans.mode = ZoomViewTransitionMode.OUT;
+				navigator.popToFirstView(zoomTrans);
+				model.mainNavigator.replaceView(views.SendPoints, null, null, zoomTrans);
+				//dispatchEvent(new Event("reset"));
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Metadata>
+		[Event(name="reset", type="flash.events.Event")]
+	</fx:Metadata>
+	
+	<s:Scroller width="100%" height="100%" verticalScrollPolicy="off" horizontalScrollPolicy="off">
+		<s:Group width="100%">
+			<s:BitmapImage width="100%" fillMode="scale" scaleMode="letterbox" smooth="true"
+						   source="{LayoutImages.Background}"/>
+			
+		</s:Group>		
+	</s:Scroller>
+	
+	<s:VGroup width="100%" verticalCenter="0" horizontalAlign="center" gap="10">
+		<s:Label width="80%" color="#FFFFFF" fontSize="32" fontWeight="bold"
+				 text="Signed, Sealed, Delivered" textAlign="center"/>
+		<s:BitmapImage source="{LayoutImages.SentLetter}" fillMode="scale" scaleMode="zoom" smooth="true" width="100%" height="{sH}" verticalCenter="0" />
+		<s:Label width="70%" color="#FFFFFF" fontSize="16" horizontalCenter="0"
+				 text="You just sent {data.username} {data.points} points!" textAlign="center"/><!--  -->
+		<s:Button label="Send More Points" color="#ffffff" click="sendMore(event)" />
+	</s:VGroup>
+	
+	
+	
+	
+	<s:Button label="" top="10" right="10" click="onClose(event)" width="45" height="45" skinClass="it.youearned.skins.ClosePopUpButtonSkin" />
+	
+</s:View>
